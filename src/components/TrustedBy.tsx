@@ -4,6 +4,8 @@ import provinLogo from "@/assets/logos/provin.png";
 import maniaLogo from "@/assets/logos/mania.svg";
 import aiLogo from "@/assets/logos/ai-logo.png";
 import mantouqLogo from "@/assets/logos/mantouq.png";
+import scsLogo from "@/assets/logos/scs.png";
+import saharaCompleteLogo from "@/assets/logos/sahara-complete.png";
 
 const logos = [
   { src: trigzLogo, alt: "Trigz", invert: false },
@@ -12,6 +14,8 @@ const logos = [
   { src: maniaLogo, alt: "Mania", invert: false },
   { src: aiLogo, alt: "Zaher AI", invert: false },
   { src: mantouqLogo, alt: "Mantouq", invert: false },
+  { src: scsLogo, alt: "SCS - Sahara Chemical Solutions", invert: false },
+  { src: saharaCompleteLogo, alt: "Sahara Complete", invert: false },
 ];
 
 const TrustedBy = () => {
