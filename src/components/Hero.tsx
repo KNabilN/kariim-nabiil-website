@@ -38,10 +38,18 @@ const Hero = () => {
             <span className="text-sm text-muted-foreground">Available for AI Projects</span>
           </div>
 
+          {/* Name */}
+          <p 
+            className="text-xl md:text-2xl font-mono text-primary mb-4 animate-fade-in-up"
+            style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+          >
+            Karim Nabil
+          </p>
+
           {/* Main Headline */}
           <h1 
             className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight mb-6 animate-fade-in-up"
-            style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+            style={{ animationDelay: '150ms', animationFillMode: 'both' }}
           >
             I BUILD{" "}
             <span className="text-gradient">INTELLIGENT</span>
@@ -52,7 +60,7 @@ const Hero = () => {
           {/* Subtitle */}
           <p 
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in-up"
-            style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+            style={{ animationDelay: '250ms', animationFillMode: 'both' }}
           >
             Agentic AI Engineer • AI Automation Expert • AI Product Manager
           </p>
@@ -60,10 +68,10 @@ const Hero = () => {
           {/* Description */}
           <p 
             className="text-base text-muted-foreground/80 max-w-xl mx-auto mb-12 animate-fade-in-up"
-            style={{ animationDelay: '300ms', animationFillMode: 'both' }}
+            style={{ animationDelay: '350ms', animationFillMode: 'both' }}
           >
             Transforming businesses with cutting-edge AI agents, automation workflows, 
-            and intelligent systems that drive real results.
+            and intelligent systems. 300K+ YouTube views • 200+ students worldwide.
           </p>
 
           {/* CTA Buttons */}
