@@ -6,12 +6,12 @@ import aiLogo from "@/assets/logos/ai-logo.png";
 import mantouqLogo from "@/assets/logos/mantouq.png";
 
 const logos = [
-  { src: trigzLogo, alt: "Trigz", className: "h-10 md:h-12" },
-  { src: pegasusLogo, alt: "Pegasus", className: "h-8 md:h-10 invert" },
-  { src: provinLogo, alt: "Provin", className: "h-10 md:h-14 invert" },
-  { src: maniaLogo, alt: "Mania", className: "h-8 md:h-10" },
-  { src: aiLogo, alt: "AI Company", className: "h-8 md:h-10" },
-  { src: mantouqLogo, alt: "Mantouq", className: "h-12 md:h-16" },
+  { src: trigzLogo, alt: "Trigz", invert: false },
+  { src: pegasusLogo, alt: "Pegasus", invert: true },
+  { src: provinLogo, alt: "Provin", invert: true },
+  { src: maniaLogo, alt: "Mania", invert: false },
+  { src: aiLogo, alt: "Zaher AI", invert: false },
+  { src: mantouqLogo, alt: "Mantouq", invert: false },
 ];
 
 const TrustedBy = () => {
@@ -32,16 +32,16 @@ const TrustedBy = () => {
         </div>
 
         {/* Logo Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center justify-items-center">
-          {logos.map((logo, index) => (
+        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
+          {logos.map((logo) => (
             <div
               key={logo.alt}
-              className="group relative w-full flex items-center justify-center p-6 rounded-xl hover:bg-card/50 transition-all duration-300"
+              className="group flex items-center justify-center p-4 min-w-[120px] md:min-w-[150px]"
             >
               <img
                 src={logo.src}
                 alt={logo.alt}
-                className={`${logo.className} w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity duration-300 grayscale group-hover:grayscale-0`}
+                className={`h-12 md:h-16 lg:h-20 w-auto max-w-[150px] md:max-w-[180px] object-contain opacity-75 group-hover:opacity-100 transition-all duration-300 grayscale group-hover:grayscale-0 ${logo.invert ? 'invert' : ''}`}
               />
             </div>
           ))}
