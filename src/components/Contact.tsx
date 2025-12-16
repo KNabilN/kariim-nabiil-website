@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Mail, Linkedin, Github, ArrowRight } from "lucide-react";
+import { Mail, Linkedin, ArrowRight } from "lucide-react";
 
 const Contact = () => {
   return (
@@ -21,7 +21,7 @@ const Contact = () => {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button variant="hero" size="lg" asChild>
-              <a href="mailto:hello@example.com">
+              <a href="mailto:karimnouh112@gmail.com">
                 <Mail className="w-5 h-5" />
                 Get in Touch
                 <ArrowRight className="w-4 h-4" />
@@ -32,21 +32,16 @@ const Contact = () => {
           {/* Social Links */}
           <div className="flex gap-4 justify-center">
             <a
-              href="#"
+              href="https://www.linkedin.com/in/kariim-nabiil/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-300"
               aria-label="LinkedIn"
             >
               <Linkedin className="w-5 h-5" />
             </a>
             <a
-              href="#"
-              className="w-12 h-12 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-300"
-              aria-label="GitHub"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-            <a
-              href="mailto:hello@example.com"
+              href="mailto:karimnouh112@gmail.com"
               className="w-12 h-12 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-300"
               aria-label="Email"
             >
