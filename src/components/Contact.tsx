@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Mail, Linkedin, ArrowRight } from "lucide-react";
+import { Mail, Linkedin, ArrowRight, MessageCircle } from "lucide-react";
 
 const Contact = () => {
   return (
@@ -39,6 +39,15 @@ const Contact = () => {
               aria-label="LinkedIn"
             >
               <Linkedin className="w-5 h-5" />
+            </a>
+            <a
+              href="https://wa.me/97451060697"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-12 h-12 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-300"
+              aria-label="WhatsApp"
+            >
+              <MessageCircle className="w-5 h-5" />
             </a>
             <a
               href="mailto:karimnouh112@gmail.com"
