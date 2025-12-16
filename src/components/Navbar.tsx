@@ -13,9 +13,6 @@ const navLinks = [{
 }, {
   label: "Courses",
   href: "#courses"
-}, {
-  label: "Contact",
-  href: "#contact"
 }];
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -41,7 +38,7 @@ const Navbar = () => {
               {link.label}
             </a>)}
           <Button variant="default" size="sm" asChild>
-            <a href="#contact">Hire Me</a>
+            <a href="#contact">Contact</a>
           </Button>
         </div>
 
@@ -59,7 +56,7 @@ const Navbar = () => {
               </a>)}
             <Button variant="default" className="mt-4" asChild>
               <a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>
-                Hire Me
+                Contact
               </a>
             </Button>
           </div>
