@@ -52,6 +52,7 @@ const experiences = [
 ];
 
 const achievements = [
+  "Cairo AI Hackathon Winner 2025",
   "NASA Space Apps Cairo Winner & Global Nominee (2x)",
   "2nd Place YLP with UNDP",
   "African Youth Forum for Entrepreneurs Winner",
@@ -64,9 +65,7 @@ const Experience = () => {
       <div className="container mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
-            Background
-          </span>
+          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">Background</span>
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
             Experience & <span className="text-gradient">Achievements</span>
           </h2>
@@ -95,7 +94,9 @@ const Experience = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">{exp.period}</p>
-                      <p className="text-xs text-muted-foreground">{exp.location} • {exp.type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {exp.location} • {exp.type}
+                      </p>
                     </div>
                   </div>
                   <ul className="space-y-1.5">
@@ -140,13 +141,9 @@ const Experience = () => {
               <div className="glass rounded-xl p-6">
                 <h4 className="font-bold mb-1">BSc Mechanical Design & Production</h4>
                 <p className="text-primary text-sm font-medium mb-2">Zagazig University, 2021</p>
-                <p className="text-sm text-muted-foreground">
-                  92% • Excellent with Honor • 1st of Department
-                </p>
+                <p className="text-sm text-muted-foreground">92% • Excellent with Honor • 1st of Department</p>
                 <div className="mt-4 pt-4 border-t border-border/50">
-                  <p className="text-xs text-muted-foreground">
-                    + Google Automation with Python Certificate
-                  </p>
+                  <p className="text-xs text-muted-foreground">+ Google Automation with Python Certificate</p>
                 </div>
               </div>
             </div>
