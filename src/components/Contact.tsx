@@ -7,15 +7,13 @@ const Contact = () => {
       <div className="container mx-auto">
         <div className="max-w-3xl mx-auto text-center">
           {/* Section Header */}
-          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
-            Let's Connect
-          </span>
+          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">Let's Connect</span>
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
             Ready to Build Something <span className="text-gradient">Amazing</span>?
           </h2>
           <p className="text-muted-foreground text-lg mb-12">
-            Whether you need AI automation, want to build intelligent agents, 
-            or have a product idea that needs AI expertise — I'm here to help.
+            Whether you need AI automation, want to build intelligent agents, or have a product idea that needs AI
+            expertise — I'm here to help.
           </p>
 
           {/* CTA */}
