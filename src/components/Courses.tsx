@@ -8,7 +8,7 @@ const courses = [
     description: "Master the art of building autonomous AI agents that can reason, plan, and execute complex tasks.",
     link: "https://karim-nabil-agentic-ai.lovable.app",
     features: ["Agent Architecture", "LLM Integration", "Tool Building", "Production Deployment"],
-    accent: "primary",
+    isFree: false,
   },
   {
     title: "AI Sales Automation with n8n",
@@ -16,7 +16,15 @@ const courses = [
     description: "Learn to automate your entire sales pipeline using AI and n8n workflow automation.",
     link: "https://www.udemy.com/course/ai-sales-automation-using-n8n/",
     features: ["n8n Workflows", "AI Integration", "Lead Scoring", "CRM Automation"],
-    accent: "secondary",
+    isFree: false,
+  },
+  {
+    title: "n8n with Karim",
+    platform: "YouTube (Free)",
+    description: "A free comprehensive course on mastering n8n workflow automation from basics to advanced integrations.",
+    link: "https://www.youtube.com/playlist?list=PLLHIYYlcgk6KN58UnPm8q1btNHLDJlYto",
+    features: ["Workflow Basics", "Automation", "Integrations", "Hands-on Projects"],
+    isFree: true,
   },
 ];
 
@@ -38,7 +46,7 @@ const Courses = () => {
         </div>
 
         {/* Course Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {courses.map((course, index) => (
             <div
               key={course.title}
@@ -79,7 +87,7 @@ const Courses = () => {
                 <Button variant="outline" className="w-full group/btn" asChild>
                   <a href={course.link} target="_blank" rel="noopener noreferrer">
                     <Play className="w-4 h-4" />
-                    Enroll Now
+                    {course.isFree ? "Watch Free" : "Enroll Now"}
                     <ExternalLink className="w-4 h-4 opacity-0 -ml-2 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all" />
                   </a>
                 </Button>
