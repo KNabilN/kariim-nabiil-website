@@ -98,6 +98,33 @@ const Projects = () => {
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
+                {/* Image Carousel */}
+                {selected.images && selected.images.length > 0 && (
+                  <div className="relative px-10">
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {selected.images.map((img, idx) => (
+                          <CarouselItem key={idx}>
+                            <div className="aspect-video rounded-xl overflow-hidden bg-secondary/20">
+                              <img
+                                src={img}
+                                alt={`${selected.title} screenshot ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      {selected.images.length > 1 && (
+                        <>
+                          <CarouselPrevious className="border-border/50 bg-card/80" />
+                          <CarouselNext className="border-border/50 bg-card/80" />
+                        </>
+                      )}
+                    </Carousel>
+                  </div>
+                )}
+
                 {/* Full Description */}
                 <p className="text-muted-foreground leading-relaxed">
                   {selected.fullDescription}

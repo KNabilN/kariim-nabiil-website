@@ -86,7 +86,7 @@ export const defaultProjects: Project[] = [
     highlight: "Invented nested parallelization pattern",
     challenges: "n8n's native parallelization doesn't support nested concurrent processing. Required inventing a custom pattern to achieve true parallel execution across multiple LLM calls.",
     results: "Reduced runtime for 10-unit jobs from ~7 minutes to ~3 minutes (57% improvement). The pattern is now reusable across multiple projects and has been adopted by other engineers.",
-  },
+    images: [],
 ];
 
 const STORAGE_KEY = "portfolio_projects";
