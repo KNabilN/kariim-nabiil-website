@@ -28,7 +28,6 @@ export const defaultProjects: Project[] = [
     results: "Delivered a production-ready legal assistant that correctly resolves amendment conflicts and provides cited, accurate legal guidance. Deployed on Telegram for easy access by legal professionals.",
     images: [],
   },
-  },
   {
     id: "2",
     title: "Agentic GEO/SEO Optimization System",
