@@ -2,6 +2,18 @@ import { Briefcase, GraduationCap, Award } from "lucide-react";
 
 const experiences = [
   {
+    role: "Sr. AI Engineer",
+    company: "FPT Software",
+    period: "Feb 2026 – Present",
+    location: "Egypt",
+    type: "Full-time, Hybrid",
+    highlights: [
+      "Global AI powerhouse from Vietnam, operating in 30+ countries",
+      "Architecting and deploying complex agentic AI workflows using n8n",
+      "Automating end-to-end business processes for a sovereign-tier client in the UAE and a global investment leader",
+    ],
+  },
+  {
     role: "Agentic AI Engineer",
     company: "Zaher AI",
     period: "Aug 2025 – Present",
@@ -28,7 +40,7 @@ const experiences = [
   {
     role: "AI Product Manager | Business Developer",
     company: "Trigz",
-    period: "Mar 2025 – Present",
+    period: "Mar 2025 – Jan 2026",
     location: "Canada",
     type: "Full-time, Remote",
     highlights: [
