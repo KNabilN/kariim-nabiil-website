@@ -129,6 +129,7 @@ function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p:
       highlight: "",
       challenges: "",
       results: "",
+      images: [],
     };
     setItems([...items, newProject]);
     setEditingId(newProject.id);
