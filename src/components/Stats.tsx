@@ -3,7 +3,7 @@ import { Users, Eye, Building2, Trophy } from "lucide-react";
 const stats = [
   {
     icon: Eye,
-    value: "400K+",
+    value: "550K+",
     label: "YouTube Views",
     description: "n8n_with_karim course",
     link: "https://www.youtube.com/@kariimnabiil",
@@ -39,15 +39,9 @@ const Stats = () => {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <stat.icon className="w-6 h-6 text-primary" />
                 </div>
-                <div className="text-3xl md:text-4xl font-black text-gradient mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm font-semibold text-foreground mb-1">
-                  {stat.label}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {stat.description}
-                </div>
+                <div className="text-3xl md:text-4xl font-black text-gradient mb-1">{stat.value}</div>
+                <div className="text-sm font-semibold text-foreground mb-1">{stat.label}</div>
+                <div className="text-xs text-muted-foreground">{stat.description}</div>
               </>
             );
 
@@ -65,11 +59,7 @@ const Stats = () => {
                 {content}
               </a>
             ) : (
-              <div
-                key={stat.label}
-                className={className}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
+              <div key={stat.label} className={className} style={{ animationDelay: `${index * 100}ms` }}>
                 {content}
               </div>
             );
