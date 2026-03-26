@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,6 +129,7 @@ function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p:
       highlight: "",
       challenges: "",
       results: "",
+      images: [],
     };
     setItems([...items, newProject]);
     setEditingId(newProject.id);
@@ -202,6 +204,50 @@ function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p:
               <div className="md:col-span-2">
                 <Label>Results</Label>
                 <Textarea value={project.results} onChange={(e) => updateField(project.id, "results", e.target.value)} className="mt-1" />
+              </div>
+              {/* Images */}
+              <div className="md:col-span-2">
+                <Label>Images</Label>
+                <div className="mt-1 space-y-2">
+                  {(project.images || []).map((url, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input value={url} readOnly className="flex-1 text-xs" />
+                      <img src={url} alt="" className="w-10 h-10 rounded object-cover bg-secondary/20" />
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        const updated = [...(project.images || [])];
+                        updated.splice(idx, 1);
+                        updateField(project.id, "images", updated);
+                      }}>
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Paste image URL..."
+                      id={`img-input-${project.id}`}
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const input = e.currentTarget;
+                          if (input.value.trim()) {
+                            updateField(project.id, "images", [...(project.images || []), input.value.trim()]);
+                            input.value = "";
+                          }
+                        }
+                      }}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const input = document.getElementById(`img-input-${project.id}`) as HTMLInputElement;
+                      if (input?.value.trim()) {
+                        updateField(project.id, "images", [...(project.images || []), input.value.trim()]);
+                        input.value = "";
+                      }
+                    }}>
+                      <ImagePlus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

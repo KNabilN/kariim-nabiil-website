@@ -11,6 +11,7 @@ export interface Project {
   highlight: string;
   challenges: string;
   results: string;
+  images: string[];
 }
 
 export const defaultProjects: Project[] = [
@@ -25,6 +26,7 @@ export const defaultProjects: Project[] = [
     highlight: "Semantic chunking + custom knowledge graph with amendment relations",
     challenges: "Handling overlapping legal amendments across different years while maintaining accuracy and context. Traditional RAG approaches failed to capture the temporal relationships between amendments.",
     results: "Delivered a production-ready legal assistant that correctly resolves amendment conflicts and provides cited, accurate legal guidance. Deployed on Telegram for easy access by legal professionals.",
+    images: [],
   },
   {
     id: "2",
@@ -37,6 +39,7 @@ export const defaultProjects: Project[] = [
     highlight: "Pre-seed funded startup ($150K)",
     challenges: "Coordinating multiple LLMs for parallel analysis while maintaining consistency across outputs. Required custom orchestration patterns to handle concurrent processing efficiently.",
     results: "Reduced analysis time from hours to under 15 minutes. Cut operational costs by 80% while increasing output quality by 50%. System processes 10+ analysis units concurrently.",
+    images: [],
   },
   {
     id: "3",
@@ -49,6 +52,7 @@ export const defaultProjects: Project[] = [
     highlight: "End-to-end sales automation",
     challenges: "Integrating multiple platforms (Notion, Google Sheets, email) into a cohesive automated pipeline while maintaining personalization in AI-generated communications.",
     results: "Fully automated the sales pipeline, reducing manual work by 90%. The agency can now handle 3x more leads with the same team size.",
+    images: [],
   },
   {
     id: "4",
@@ -61,6 +65,7 @@ export const defaultProjects: Project[] = [
     highlight: "39 branches reporting system",
     challenges: "Handling concurrent data entry from 39 branches while ensuring data integrity and generating accurate aggregated reports across multiple time periods.",
     results: "Deployed to 39 branches with real-time reporting. Management now has instant visibility into performance metrics, replacing manual Excel-based reporting.",
+    images: [],
   },
   {
     id: "5",
@@ -73,6 +78,7 @@ export const defaultProjects: Project[] = [
     highlight: "AI-powered financial insights",
     challenges: "Accurately parsing diverse financial document formats and ensuring AI-generated financial advice meets professional standards and regulatory requirements.",
     results: "Platform processes financial documents in minutes instead of hours, providing actionable insights that financial professionals can immediately use in their decision-making.",
+    images: [],
   },
   {
     id: "6",
@@ -85,6 +91,7 @@ export const defaultProjects: Project[] = [
     highlight: "Invented nested parallelization pattern",
     challenges: "n8n's native parallelization doesn't support nested concurrent processing. Required inventing a custom pattern to achieve true parallel execution across multiple LLM calls.",
     results: "Reduced runtime for 10-unit jobs from ~7 minutes to ~3 minutes (57% improvement). The pattern is now reusable across multiple projects and has been adopted by other engineers.",
+    images: [],
   },
 ];
 
