@@ -50,7 +50,7 @@ export const defaultProjects: Project[] = [
     highlight: "End-to-end sales automation",
     challenges: "Integrating multiple platforms (Notion, Google Sheets, email) into a cohesive automated pipeline while maintaining personalization in AI-generated communications.",
     results: "Fully automated the sales pipeline, reducing manual work by 90%. The agency can now handle 3x more leads with the same team size.",
-  },
+    images: [],
   {
     id: "4",
     title: "Sales Rep Reporting System",
