@@ -38,7 +38,7 @@ export const defaultProjects: Project[] = [
     highlight: "Pre-seed funded startup ($150K)",
     challenges: "Coordinating multiple LLMs for parallel analysis while maintaining consistency across outputs. Required custom orchestration patterns to handle concurrent processing efficiently.",
     results: "Reduced analysis time from hours to under 15 minutes. Cut operational costs by 80% while increasing output quality by 50%. System processes 10+ analysis units concurrently.",
-  },
+    images: [],
   {
     id: "3",
     title: "Sales AI Automation for Marketing Agency",
