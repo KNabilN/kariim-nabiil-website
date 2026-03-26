@@ -62,7 +62,7 @@ export const defaultProjects: Project[] = [
     highlight: "39 branches reporting system",
     challenges: "Handling concurrent data entry from 39 branches while ensuring data integrity and generating accurate aggregated reports across multiple time periods.",
     results: "Deployed to 39 branches with real-time reporting. Management now has instant visibility into performance metrics, replacing manual Excel-based reporting.",
-  },
+    images: [],
   {
     id: "5",
     title: "AI Financial Analysis Platform",
