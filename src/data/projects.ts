@@ -11,6 +11,7 @@ export interface Project {
   highlight: string;
   challenges: string;
   results: string;
+  images: string[];
 }
 
 export const defaultProjects: Project[] = [

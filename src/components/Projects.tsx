@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin, Wrench, X, Sparkles, Target, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { useProjects, type Project } from "@/data/projects";
 
 const Projects = () => {
