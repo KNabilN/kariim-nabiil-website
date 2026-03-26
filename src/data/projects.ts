@@ -93,6 +93,32 @@ export const defaultProjects: Project[] = [
     results: "Reduced runtime for 10-unit jobs from ~7 minutes to ~3 minutes (57% improvement). The pattern is now reusable across multiple projects and has been adopted by other engineers.",
     images: [],
   },
+  {
+    id: "7",
+    title: "Environmental Compliance Management Platform",
+    description: "Built a multi-role platform for factories and companies in Saudi Arabia to manage environmental license documentation using advanced OCR and LLMs.",
+    fullDescription: "Designed and developed a comprehensive Environmental Compliance Management Platform tailored for the Saudi Arabian market. The system helps factories and companies organize, process, and manage all required documents for their environmental licenses. Leveraging advanced OCR and LLM technologies, the platform automatically extracts, classifies, and validates document data. It features a multi-role architecture supporting consultants, company admins, and department admins — each with tailored dashboards and permissions.",
+    tools: ["OCR", "LLMs", "Multi-Role Auth", "Document Processing"],
+    domain: "Environmental Compliance",
+    country: "Saudi Arabia",
+    highlight: "Advanced OCR + LLM-powered document management with multi-role access",
+    challenges: "Processing diverse document formats with varying quality through OCR while maintaining high accuracy. Designing a flexible role-based access system that accommodates the complex relationships between consultants, company admins, and department admins.",
+    results: "Delivered a production-ready platform that streamlines environmental license compliance, significantly reducing manual document processing time and ensuring regulatory adherence for multiple companies.",
+    images: [],
+  },
+  {
+    id: "8",
+    title: "NGO Service Provider Marketplace",
+    description: "Developed an Upwork-style marketplace platform for NGOs in Saudi Arabia to discover and engage qualified service providers.",
+    fullDescription: "Built a marketplace platform inspired by Upwork, specifically designed for the NGO sector in Saudi Arabia. The platform connects non-governmental organizations with qualified service providers, enabling NGOs to post service requirements, review provider profiles, and manage engagements — all within a streamlined digital workflow tailored to the unique needs of the Saudi NGO ecosystem.",
+    tools: ["Lovable", "Supabase", "Matching Algorithm"],
+    domain: "NGO & Marketplace",
+    country: "Saudi Arabia",
+    highlight: "Upwork-style marketplace tailored for Saudi NGOs",
+    challenges: "Adapting a general marketplace model to the specific regulatory and operational requirements of NGOs in Saudi Arabia. Building trust mechanisms and qualification verification for service providers in the non-profit sector.",
+    results: "Launched a functional marketplace that enables NGOs to efficiently find and engage service providers, reducing procurement cycles and increasing transparency in vendor selection.",
+    images: [],
+  },
 ];
 
 const STORAGE_KEY = "portfolio_projects";
