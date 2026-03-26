@@ -28,6 +28,7 @@ export const defaultProjects: Project[] = [
     results: "Delivered a production-ready legal assistant that correctly resolves amendment conflicts and provides cited, accurate legal guidance. Deployed on Telegram for easy access by legal professionals.",
     images: [],
   },
+  },
   {
     id: "2",
     title: "Agentic GEO/SEO Optimization System",
@@ -40,6 +41,7 @@ export const defaultProjects: Project[] = [
     challenges: "Coordinating multiple LLMs for parallel analysis while maintaining consistency across outputs. Required custom orchestration patterns to handle concurrent processing efficiently.",
     results: "Reduced analysis time from hours to under 15 minutes. Cut operational costs by 80% while increasing output quality by 50%. System processes 10+ analysis units concurrently.",
     images: [],
+  },
   {
     id: "3",
     title: "Sales AI Automation for Marketing Agency",
@@ -52,6 +54,7 @@ export const defaultProjects: Project[] = [
     challenges: "Integrating multiple platforms (Notion, Google Sheets, email) into a cohesive automated pipeline while maintaining personalization in AI-generated communications.",
     results: "Fully automated the sales pipeline, reducing manual work by 90%. The agency can now handle 3x more leads with the same team size.",
     images: [],
+  },
   {
     id: "4",
     title: "Sales Rep Reporting System",
@@ -64,6 +67,7 @@ export const defaultProjects: Project[] = [
     challenges: "Handling concurrent data entry from 39 branches while ensuring data integrity and generating accurate aggregated reports across multiple time periods.",
     results: "Deployed to 39 branches with real-time reporting. Management now has instant visibility into performance metrics, replacing manual Excel-based reporting.",
     images: [],
+  },
   {
     id: "5",
     title: "AI Financial Analysis Platform",
@@ -76,6 +80,7 @@ export const defaultProjects: Project[] = [
     challenges: "Accurately parsing diverse financial document formats and ensuring AI-generated financial advice meets professional standards and regulatory requirements.",
     results: "Platform processes financial documents in minutes instead of hours, providing actionable insights that financial professionals can immediately use in their decision-making.",
     images: [],
+  },
   {
     id: "6",
     title: "Agentic LLM Orchestration Engine",
@@ -88,6 +93,7 @@ export const defaultProjects: Project[] = [
     challenges: "n8n's native parallelization doesn't support nested concurrent processing. Required inventing a custom pattern to achieve true parallel execution across multiple LLM calls.",
     results: "Reduced runtime for 10-unit jobs from ~7 minutes to ~3 minutes (57% improvement). The pattern is now reusable across multiple projects and has been adopted by other engineers.",
     images: [],
+  },
 ];
 
 const STORAGE_KEY = "portfolio_projects";
