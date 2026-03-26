@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Bot, Cpu, Workflow } from "lucide-react";
+import { useHeroContent } from "@/data/siteContent";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Hero = () => {
+  const { data: hero } = useHeroContent();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -29,66 +32,58 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-6 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Badge */}
           <div 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 animate-fade-in"
             style={{ animationDelay: '0ms', animationFillMode: 'both' }}
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-glow-pulse" />
-            <span className="text-sm text-muted-foreground">Available for AI Projects</span>
+            <span className="text-sm text-muted-foreground">{hero.badgeText}</span>
           </div>
 
-          {/* Name */}
           <p 
             className="text-xl md:text-2xl font-mono text-primary mb-4 animate-fade-in-up"
             style={{ animationDelay: '100ms', animationFillMode: 'both' }}
           >
-            Karim Nabil
+            {hero.name}
           </p>
 
-          {/* Main Headline */}
           <h1 
             className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight mb-6 animate-fade-in-up"
             style={{ animationDelay: '150ms', animationFillMode: 'both' }}
           >
-            I BUILD{" "}
-            <span className="text-gradient">INTELLIGENT</span>
+            {hero.headline1}
+            <span className="text-gradient">{hero.headlineHighlight}</span>
             <br />
-            AI SOLUTIONS
+            {hero.headline2}
           </h1>
 
-          {/* Subtitle */}
           <p 
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in-up"
             style={{ animationDelay: '250ms', animationFillMode: 'both' }}
           >
-            Agentic AI Engineer • AI Automation Expert • AI Product Manager
+            {hero.subtitle}
           </p>
 
-          {/* Description */}
           <p 
             className="text-base text-muted-foreground/80 max-w-xl mx-auto mb-12 animate-fade-in-up"
             style={{ animationDelay: '350ms', animationFillMode: 'both' }}
           >
-            Transforming businesses with cutting-edge AI agents, automation workflows, 
-            and intelligent systems. 300K+ YouTube views • 200+ students worldwide.
+            {hero.description}
           </p>
 
-          {/* CTA Buttons */}
           <div 
             className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up"
             style={{ animationDelay: '400ms', animationFillMode: 'both' }}
           >
             <Button variant="hero" size="lg" asChild>
-              <a href="#courses">Explore Courses</a>
+              <a href={hero.cta1Link}>{hero.cta1Text}</a>
             </Button>
             <Button variant="heroOutline" size="lg" asChild>
-              <a href="#contact">Get in Touch</a>
+              <a href={hero.cta2Link}>{hero.cta2Text}</a>
             </Button>
           </div>
         </div>
 
-        {/* Scroll Indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
           <a href="#about" className="text-muted-foreground hover:text-primary transition-colors">
             <ArrowDown className="w-6 h-6" />

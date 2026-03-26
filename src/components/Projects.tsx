@@ -1,58 +1,12 @@
-import { ExternalLink, MapPin, Wrench } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-const projects = [
-  {
-    title: "AI Legal Assistant for Qatari Procurement Law",
-    description: "Built an AI assistant using RAG + Knowledge Graph that answers questions on Qatari procurement law while correctly handling multi-year legal amendments (2015, 2019, 2024).",
-    tools: ["n8n", "Supabase", "pgvector", "LLM", "Telegram"],
-    domain: "Legal Tech",
-    country: "Qatar",
-    highlight: "Semantic chunking + custom knowledge graph with amendment relations",
-  },
-  {
-    title: "Agentic GEO/SEO Optimization System",
-    description: "Developed a deep technical agentic system for Zaher AI startup, reducing analysis time from hours to 15 minutes and cutting costs by 80%.",
-    tools: ["n8n", "Multiple LLMs", "Parallelization"],
-    domain: "GEO (Generative Engine Optimization)",
-    country: "Egypt",
-    highlight: "Pre-seed funded startup ($150K)",
-  },
-  {
-    title: "Sales AI Automation for Marketing Agency",
-    description: "Developed a full AI-driven system to automate the entire sales process — from lead generation to follow-ups, proposal, and contract creation.",
-    tools: ["Notion CRM", "n8n", "Google Sheets", "AI"],
-    domain: "Marketing & Sales",
-    country: "Bahrain",
-    highlight: "End-to-end sales automation",
-  },
-  {
-    title: "Sales Rep Reporting System",
-    description: "Built an end-to-end reporting platform for 39 branches to record daily sales and generate daily, weekly, and monthly performance reports.",
-    tools: ["Lovable", "Supabase"],
-    domain: "Sales Analytics",
-    country: "Egypt",
-    highlight: "39 branches reporting system",
-  },
-  {
-    title: "AI Financial Analysis Platform",
-    description: "Built a platform for finance professionals to analyze financial sheets like balance sheets and cash flows using AI, providing recommendations and performance evaluations.",
-    tools: ["AI Models", "n8n", "Financial Tools"],
-    domain: "Finance & AI",
-    country: "Saudi Arabia",
-    highlight: "AI-powered financial insights",
-  },
-  {
-    title: "Agentic LLM Orchestration Engine",
-    description: "Built a multi-LLM agentic system reducing runtime for 10-unit jobs from ~7 minutes to ~3 minutes using custom nested parallelization pattern in n8n.",
-    tools: ["n8n", "Multiple LLMs", "Custom Batching"],
-    domain: "AI Infrastructure",
-    country: "Egypt",
-    highlight: "Invented nested parallelization pattern",
-  },
-];
+import { useState } from "react";
+import { MapPin, Wrench, X, Sparkles, Target, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useProjects, type Project } from "@/data/projects";
 
 const Projects = () => {
+  const { projects } = useProjects();
+  const [selected, setSelected] = useState<Project | null>(null);
+
   return (
     <section id="projects" className="section-padding relative">
       <div className="container mx-auto">
@@ -71,10 +25,11 @@ const Projects = () => {
 
         {/* Projects Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, index) => (
+          {projects.map((project) => (
             <div
-              key={project.title}
-              className="group glass rounded-2xl p-6 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 flex flex-col"
+              key={project.id}
+              onClick={() => setSelected(project)}
+              className="group glass rounded-2xl p-6 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 flex flex-col cursor-pointer"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -120,6 +75,86 @@ const Projects = () => {
           ))}
         </div>
       </div>
+
+      {/* Project Detail Dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto glass border-border/50 bg-card/95 backdrop-blur-xl">
+          {selected && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                    {selected.domain}
+                  </span>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="w-3 h-3" />
+                    {selected.country}
+                  </div>
+                </div>
+                <DialogTitle className="text-2xl font-bold leading-tight">
+                  {selected.title}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Full Description */}
+                <p className="text-muted-foreground leading-relaxed">
+                  {selected.fullDescription}
+                </p>
+
+                {/* Highlight */}
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                  <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-primary mb-1">Key Highlight</p>
+                    <p className="text-sm text-muted-foreground">{selected.highlight}</p>
+                  </div>
+                </div>
+
+                {/* Challenges */}
+                {selected.challenges && (
+                  <div className="flex items-start gap-3">
+                    <Target className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold mb-1">Challenges</p>
+                      <p className="text-sm text-muted-foreground">{selected.challenges}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Results */}
+                {selected.results && (
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold mb-1">Results</p>
+                      <p className="text-sm text-muted-foreground">{selected.results}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tools */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wrench className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-semibold">Tech Stack</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selected.tools.map((tool) => (
+                      <span
+                        key={tool}
+                        className="px-3 py-1 text-xs font-medium rounded-full bg-secondary text-secondary-foreground"
+                      >
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
