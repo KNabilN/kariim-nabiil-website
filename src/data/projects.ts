@@ -74,7 +74,7 @@ export const defaultProjects: Project[] = [
     highlight: "AI-powered financial insights",
     challenges: "Accurately parsing diverse financial document formats and ensuring AI-generated financial advice meets professional standards and regulatory requirements.",
     results: "Platform processes financial documents in minutes instead of hours, providing actionable insights that financial professionals can immediately use in their decision-making.",
-  },
+    images: [],
   {
     id: "6",
     title: "Agentic LLM Orchestration Engine",
