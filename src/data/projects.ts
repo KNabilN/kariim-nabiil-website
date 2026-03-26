@@ -26,7 +26,7 @@ export const defaultProjects: Project[] = [
     highlight: "Semantic chunking + custom knowledge graph with amendment relations",
     challenges: "Handling overlapping legal amendments across different years while maintaining accuracy and context. Traditional RAG approaches failed to capture the temporal relationships between amendments.",
     results: "Delivered a production-ready legal assistant that correctly resolves amendment conflicts and provides cited, accurate legal guidance. Deployed on Telegram for easy access by legal professionals.",
-  },
+    images: [],
   {
     id: "2",
     title: "Agentic GEO/SEO Optimization System",
