@@ -1,38 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Play, BookOpen } from "lucide-react";
-
-const courses = [
-  {
-    title: "Agentic AI Masterclass",
-    platform: "Lovable",
-    description: "Master the art of building autonomous AI agents that can reason, plan, and execute complex tasks.",
-    link: "https://karim-nabil-agentic-ai.lovable.app",
-    features: ["Agent Architecture", "LLM Integration", "Tool Building", "Production Deployment"],
-    isFree: false,
-  },
-  {
-    title: "AI Sales Automation with n8n",
-    platform: "Udemy",
-    description: "Learn to automate your entire sales pipeline using AI and n8n workflow automation.",
-    link: "https://www.udemy.com/course/ai-sales-automation-using-n8n/",
-    features: ["n8n Workflows", "AI Integration", "Lead Scoring", "CRM Automation"],
-    isFree: false,
-  },
-  {
-    title: "n8n with Karim",
-    platform: "YouTube (Free)",
-    description: "A free comprehensive course on mastering n8n workflow automation from basics to advanced integrations.",
-    link: "https://www.youtube.com/playlist?list=PLLHIYYlcgk6KN58UnPm8q1btNHLDJlYto",
-    features: ["Workflow Basics", "Automation", "Integrations", "Hands-on Projects"],
-    isFree: true,
-  },
-];
+import { useCourses } from "@/data/siteContent";
 
 const Courses = () => {
+  const { data: courses } = useCourses();
+
   return (
     <section id="courses" className="section-padding relative bg-card/30">
       <div className="container mx-auto">
-        {/* Section Header */}
         <div className="text-center mb-16">
           <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
             Learn From Me
@@ -45,14 +20,12 @@ const Courses = () => {
           </p>
         </div>
 
-        {/* Course Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {courses.map((course, index) => (
+          {courses.map((course) => (
             <div
-              key={course.title}
+              key={course.id}
               className="group glass rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500"
             >
-              {/* Card Header */}
               <div className="p-8 pb-0">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -63,12 +36,9 @@ const Courses = () => {
                 <h3 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">
                   {course.title}
                 </h3>
-                <p className="text-muted-foreground mb-6">
-                  {course.description}
-                </p>
+                <p className="text-muted-foreground mb-6">{course.description}</p>
               </div>
 
-              {/* Features */}
               <div className="px-8 pb-6">
                 <div className="flex flex-wrap gap-2">
                   {course.features.map((feature) => (
@@ -82,7 +52,6 @@ const Courses = () => {
                 </div>
               </div>
 
-              {/* CTA */}
               <div className="px-8 pb-8">
                 <Button variant="outline" className="w-full group/btn" asChild>
                   <a href={course.link} target="_blank" rel="noopener noreferrer">
