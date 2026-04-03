@@ -11,7 +11,8 @@ import {
   defaultHeroContent, defaultStats, defaultCourses,
   type HeroContent, type StatItem, type CourseItem,
 } from "@/data/siteContent";
-import { LogOut, Plus, Trash2, Save, RotateCcw } from "lucide-react";
+import { LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const CREDENTIALS = { username: "karimnouh112", password: "admin112" };
 
