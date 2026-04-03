@@ -876,6 +876,8 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
 // ─── Course Content Editor ──────────────────────────────────────
 function CourseContentEditor() {
   const [chapters, setChapters] = useState<any[]>([]);
+  const [paidCourses, setPaidCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -883,8 +885,25 @@ function CourseContentEditor() {
   const [newDesc, setNewDesc] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
-  const fetchChapters = async () => { setLoading(true); const { data } = await supabase.from("course_chapters").select("*").order("order_index"); setChapters(data || []); setLoading(false); };
-  useEffect(() => { fetchChapters(); }, []);
+  const fetchAll = async () => {
+    setLoading(true);
+    const [chapRes, coursesRes] = await Promise.all([
+      supabase.from("course_chapters").select("*").order("order_index"),
+      supabase.from("paid_courses").select("*").order("title"),
+    ]);
+    setChapters(chapRes.data || []);
+    setPaidCourses(coursesRes.data || []);
+    if (!selectedCourseId && (coursesRes.data || []).length > 0) {
+      setSelectedCourseId(coursesRes.data![0].id);
+    }
+    setLoading(false);
+  };
+  useEffect(() => { fetchAll(); }, []);
+
+  const filteredChapters = useMemo(() => {
+    if (!selectedCourseId) return chapters;
+    return chapters.filter(ch => ch.course_id === selectedCourseId);
+  }, [chapters, selectedCourseId]);
 
   const addChapter = async () => {
     setSaving(true);
