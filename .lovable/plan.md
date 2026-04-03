@@ -1,152 +1,61 @@
 
 
-## Plan: Advanced n8n Course Platform with Payment Verification & Gated Content
+## Plan: Migrate Admin to Supabase Auth + Employee Management
 
-### Overview
+### Summary
+Replace the hardcoded admin login with Supabase authentication, create the admin user with the specified credentials, and add the ability for the admin to create employee accounts (with name, email, password) that can log into their own dashboard page.
 
-Build a full course platform on top of the existing portfolio. Users land on a dedicated course page, pay via manual transfer (PayPal / InstaPay / Vodafone Cash), upload a payment screenshot, and once approved by the team they get email-based access to course content (videos + downloadable resources). Device access is limited to 3 per email.
+### Database Changes
 
----
+**1. Create an edge function to manage employees**
+- An `invite-employee` edge function that uses the Supabase Admin API (`supabase.auth.admin.createUser`) to create new auth users with email + password
+- Automatically inserts a `team` role into `user_roles` for the new user
+- Requires the `SUPABASE_SERVICE_ROLE_KEY` secret (already available)
 
-### Architecture
+**2. Create admin user manually**
+- Use Supabase dashboard or edge function to create user `karimnouh112@gmail.com` with password `K@admin123`
+- Insert an `admin` role into `user_roles` for this user
 
-```text
-┌─────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  Course Page │────▶│  Payment Form    │────▶│  Supabase DB   │
-│  (public)    │     │  (upload screenshot)│   │  + Storage     │
-└─────────────┘     └──────────────────┘     └───────┬────────┘
-                                                      │
-                    ┌──────────────────┐               │
-                    │  Team Dashboard  │◀──────────────┘
-                    │  /team-dashboard │  (review & approve)
-                    └──────────────────┘
-                              │
-                              ▼ (on approve → user email activated)
-                    ┌──────────────────┐
-                    │  Student Portal  │
-                    │  /course/learn   │  (email login, 3-device limit)
-                    │  Videos + Files  │
-                    └──────────────────┘
+### Code Changes
 
-Admin (/admin) → Manage chapters, upload resources, add videos
-```
+**3. Rewrite `src/pages/Admin.tsx` login flow**
+- Replace hardcoded credentials with `supabase.auth.signInWithPassword`
+- After login, check `user_roles` for `admin` role; deny access if not admin
+- Keep all existing admin tabs (Projects, Hero, Stats, Courses, Course Content)
+- Add a new **"Employees"** tab with:
+  - Form to add employee: Name, Email, Password fields
+  - Calls the `invite-employee` edge function
+  - Lists existing team members (from `user_roles` joined concept)
+  - Ability to remove employees
 
----
+**4. Create `src/pages/EmployeeDashboard.tsx`**
+- Similar to TeamDashboard but specifically for employees with `team` role
+- Supabase auth login (email/password)
+- After login, verify user has `team` role
+- Shows the same tabs as TeamDashboard: Payments, Students, Add Student
+- Reuses the existing PaymentsTab, StudentsTab, AddStudentTab components
 
-### Database Schema (Supabase — External)
+**5. Update `src/App.tsx`**
+- Add route `/employee-dashboard` pointing to EmployeeDashboard
+- Keep `/team-dashboard` as alias or redirect
 
-**Tables:**
+**6. Create `supabase/functions/invite-employee/index.ts`**
+- Edge function that:
+  - Verifies caller is admin (checks JWT + `user_roles`)
+  - Creates auth user with `supabase.auth.admin.createUser({ email, password, email_confirm: true })`
+  - Inserts `team` role into `user_roles`
+  - Returns success/error
 
-1. **`payment_submissions`** — Payment requests from users
-   - `id`, `full_name`, `email`, `phone`, `payment_method` (paypal/instapay/vodafone_cash), `screenshot_url` (Storage), `status` (pending/approved/rejected), `reviewed_by`, `reviewed_at`, `created_at`
+### File Summary
+| File | Action |
+|------|--------|
+| `supabase/functions/invite-employee/index.ts` | Create |
+| `src/pages/Admin.tsx` | Rewrite login + add Employees tab |
+| `src/pages/EmployeeDashboard.tsx` | Create (team role gated dashboard) |
+| `src/App.tsx` | Add employee-dashboard route |
 
-2. **`course_students`** — Approved students
-   - `id`, `email`, `full_name`, `is_active`, `created_at`, `added_by` (team/payment)
-
-3. **`student_devices`** — Device tracking (max 3)
-   - `id`, `student_id` (FK), `device_fingerprint`, `device_name`, `last_seen_at`, `created_at`
-
-4. **`course_chapters`** — Course content structure
-   - `id`, `title`, `description`, `youtube_url`, `order_index`, `is_published`, `created_at`
-
-5. **`chapter_resources`** — Downloadable files per chapter
-   - `id`, `chapter_id` (FK), `title`, `file_url` (Storage), `file_type`, `file_size`, `created_at`
-
-6. **`team_members`** — Team login (email + password via Supabase Auth)
-   - Uses Supabase Auth + a `user_roles` table with role enum (admin/team)
-
-**Storage Buckets:**
-- `payment-screenshots` — Public upload, private read (RLS: team/admin only)
-- `course-resources` — Private bucket, accessible only to approved students
-
-**RLS Policies:**
-- Payment submissions: anyone can insert, only team/admin can read/update
-- Course students: only team/admin can manage
-- Student devices: read/write scoped to the student's own records
-- Course chapters/resources: read for active students only, write for admin/team
-
----
-
-### Pages & Components
-
-**1. Course Landing Page (`/course/advanced-n8n`)**
-- Hero section with course title, description, what you'll learn
-- Pricing section showing payment methods (PayPal, InstaPay, Vodafone Cash) with account details
-- Payment form: name, email, phone, payment method selector, screenshot upload
-- Confirmation message after submission
-
-**2. Student Portal (`/course/learn`)**
-- Email-only login (no password): enter email → check if approved → generate device fingerprint → check device count (max 3)
-- If new device and already 3 devices: block access with message
-- Chapter list sidebar + video player (YouTube embed) + resource download links
-- Clean, organized layout per chapter
-
-**3. Team Dashboard (`/team-dashboard`)**
-- Login via Supabase Auth (email/password for team members)
-- Pending payments tab: list submissions with screenshot preview, approve/reject buttons
-- Approved students tab: list with ability to deactivate
-- Manual add: form to add a student email directly (for direct transfers)
-- Shows payment method, date, name, screenshot for each submission
-
-**4. Admin Panel Updates (`/admin`)**
-- New "Course Content" tab alongside existing Hero/Stats/Courses/Projects tabs
-- Add/edit/delete chapters (title, description, YouTube URL, order)
-- Upload resources per chapter (file upload to Supabase Storage)
-- Toggle chapter published/unpublished
-- Manage team members (add/remove team email accounts)
-
----
-
-### Device Fingerprinting (3-Device Limit)
-
-- Generate a browser fingerprint using a combination of: `navigator.userAgent`, screen resolution, timezone, and a locally stored random UUID (stored in localStorage as `device_id`)
-- On login, check `student_devices` count for this student
-- If device already registered: allow access, update `last_seen_at`
-- If new device and count < 3: register and allow
-- If new device and count >= 3: deny access with a message to contact support
-
----
-
-### Security
-
-- Supabase Auth for team/admin authentication
-- RLS on all tables — students can only see their own data, team sees payments and students
-- `user_roles` table (separate from profiles) with `has_role()` security definer function
-- No admin check via localStorage — all through Supabase Auth + roles
-- Device fingerprint is supplementary, not a security boundary (it's a convenience limit)
-- Storage: payment screenshots are private (team-only access), course resources check student status
-
----
-
-### Implementation Order
-
-1. **Connect Supabase** — Set up project connection
-2. **Database migrations** — Create all tables, RLS policies, roles, storage buckets
-3. **Auth setup** — Supabase Auth for team/admin, email-only access for students
-4. **Course landing page** — `/course/advanced-n8n` with payment form and screenshot upload
-5. **Team dashboard** — `/team-dashboard` for reviewing payments, approving students, manual add
-6. **Student portal** — `/course/learn` with email login, device tracking, chapter viewer
-7. **Admin course management** — New tab in `/admin` for chapters and resources
-8. **Routing** — Add all new routes to App.tsx
-
----
-
-### Files to Create/Modify
-
-**Create:**
-- `src/pages/CourseLanding.tsx` — Public course page with payment form
-- `src/pages/CourseLearn.tsx` — Gated student portal
-- `src/pages/TeamDashboard.tsx` — Team review panel
-- `src/components/course/PaymentForm.tsx` — Payment submission form
-- `src/components/course/ChapterViewer.tsx` — Video + resources viewer
-- `src/components/course/DeviceGate.tsx` — Email login + device check
-- `src/components/course/ChapterSidebar.tsx` — Chapter navigation
-- `src/lib/deviceFingerprint.ts` — Device ID generation
-- `src/integrations/supabase/` — Client setup (auto-generated by connection)
-- Multiple SQL migrations for tables, RLS, storage buckets
-
-**Modify:**
-- `src/App.tsx` — Add new routes
-- `src/pages/Admin.tsx` — Add course content management tab
-- `src/components/Courses.tsx` — Link the Advanced n8n course card to `/course/advanced-n8n`
+### Technical Notes
+- The admin user (`karimnouh112@gmail.com`) needs to be created in Supabase Auth and assigned the `admin` role in `user_roles` — this will be done via SQL insert after creating the user through the edge function or dashboard
+- Employee passwords are set directly (no email confirmation needed) using `email_confirm: true` in `createUser`
+- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` which is already configured
 
