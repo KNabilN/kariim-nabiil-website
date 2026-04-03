@@ -111,7 +111,9 @@ export type Database = {
       }
       payment_submissions: {
         Row: {
+          amount: number | null
           created_at: string
+          currency: string | null
           email: string
           full_name: string
           id: string
@@ -123,7 +125,9 @@ export type Database = {
           status: Database["public"]["Enums"]["payment_status"]
         }
         Insert: {
+          amount?: number | null
           created_at?: string
+          currency?: string | null
           email: string
           full_name: string
           id?: string
@@ -135,7 +139,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"]
         }
         Update: {
+          amount?: number | null
           created_at?: string
+          currency?: string | null
           email?: string
           full_name?: string
           id?: string

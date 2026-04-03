@@ -203,6 +203,7 @@ function PaymentsTab({ userId }: { userId: string }) {
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="capitalize">{p.payment_method?.replace("_", " ")}</span>
+                {p.amount != null && <span className="font-semibold text-foreground">{p.amount} {p.currency || "EGP"}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(p.created_at).toLocaleDateString()}</span>
               </div>
               {p.screenshot_url && (
@@ -273,25 +274,41 @@ function StudentsTab() {
 function AddStudentTab() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("EGP");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const trimmedEmail = email.trim().toLowerCase();
     await supabase.from("course_students").upsert(
-      { email: email.trim().toLowerCase(), full_name: name, is_active: true, added_by: "team" },
+      { email: trimmedEmail, full_name: name, is_active: true, added_by: "team" },
       { onConflict: "email" }
     );
+    // Also create an approved payment record
+    await supabase.from("payment_submissions").insert({
+      email: trimmedEmail,
+      full_name: name,
+      phone: "-",
+      payment_method: "instapay" as any,
+      screenshot_url: "-",
+      status: "approved" as any,
+      amount: amount ? parseFloat(amount) : null,
+      currency,
+      reviewed_at: new Date().toISOString(),
+    });
     setLoading(false);
     setSuccess(true);
     setName("");
     setEmail("");
+    setAmount("");
     setTimeout(() => setSuccess(false), 3000);
   };
 
   return (
-    <div className="max-w-md">
+    <div className="max-w-lg">
       <h2 className="text-lg font-bold mb-4">Add Student Manually</h2>
       <form onSubmit={handleAdd} className="space-y-4">
         <div>
@@ -301,6 +318,20 @@ function AddStudentTab() {
         <div>
           <Label>Email</Label>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" />
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Label>Amount Paid</Label>
+            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1" placeholder="0.00" />
+          </div>
+          <div className="w-[100px]">
+            <Label>Currency</Label>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="EGP">EGP</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
         </div>
         {success && <p className="text-green-500 text-sm">Student added successfully!</p>}
         <Button type="submit" disabled={loading}>

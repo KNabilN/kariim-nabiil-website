@@ -1,0 +1,1 @@
+ALTER TABLE public.payment_submissions ADD COLUMN amount numeric DEFAULT NULL, ADD COLUMN currency text DEFAULT 'EGP';
