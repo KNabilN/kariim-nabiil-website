@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import PaymentForm from "@/components/course/PaymentForm";
-import { BookOpen, CheckCircle, ArrowLeft, Play, Users, Globe, Zap } from "lucide-react";
+import { BookOpen, CheckCircle, ArrowLeft, Youtube, FolderDown, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const WHAT_YOU_LEARN = [
