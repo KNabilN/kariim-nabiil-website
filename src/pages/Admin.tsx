@@ -876,6 +876,8 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
 // ─── Course Content Editor ──────────────────────────────────────
 function CourseContentEditor() {
   const [chapters, setChapters] = useState<any[]>([]);
+  const [paidCourses, setPaidCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -883,22 +885,48 @@ function CourseContentEditor() {
   const [newDesc, setNewDesc] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
-  const fetchChapters = async () => { setLoading(true); const { data } = await supabase.from("course_chapters").select("*").order("order_index"); setChapters(data || []); setLoading(false); };
-  useEffect(() => { fetchChapters(); }, []);
+  const fetchAll = async () => {
+    setLoading(true);
+    const [chapRes, coursesRes] = await Promise.all([
+      supabase.from("course_chapters").select("*").order("order_index"),
+      supabase.from("paid_courses").select("*").order("title"),
+    ]);
+    setChapters(chapRes.data || []);
+    setPaidCourses(coursesRes.data || []);
+    if (!selectedCourseId && (coursesRes.data || []).length > 0) {
+      setSelectedCourseId(coursesRes.data![0].id);
+    }
+    setLoading(false);
+  };
+  useEffect(() => { fetchAll(); }, []);
+
+  const filteredChapters = useMemo(() => {
+    if (!selectedCourseId) return chapters;
+    return chapters.filter(ch => ch.course_id === selectedCourseId);
+  }, [chapters, selectedCourseId]);
 
   const addChapter = async () => {
+    if (!selectedCourseId) return;
     setSaving(true);
-    await supabase.from("course_chapters").insert({ title: newTitle || "New Chapter", description: newDesc || null, youtube_url: newUrl || null, order_index: chapters.length, is_published: false });
-    setNewTitle(""); setNewDesc(""); setNewUrl(""); setSaving(false); fetchChapters();
+    await supabase.from("course_chapters").insert({ title: newTitle || "New Chapter", description: newDesc || null, youtube_url: newUrl || null, order_index: filteredChapters.length, is_published: false, course_id: selectedCourseId });
+    setNewTitle(""); setNewDesc(""); setNewUrl(""); setSaving(false); fetchAll();
   };
-  const updateChapter = async (id: string, updates: Record<string, any>) => { await supabase.from("course_chapters").update(updates).eq("id", id); fetchChapters(); };
-  const deleteChapter = async (id: string) => { await supabase.from("course_chapters").delete().eq("id", id); fetchChapters(); };
+  const updateChapter = async (id: string, updates: Record<string, any>) => { await supabase.from("course_chapters").update(updates).eq("id", id); fetchAll(); };
+  const deleteChapter = async (id: string) => { await supabase.from("course_chapters").delete().eq("id", id); fetchAll(); };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Course Chapters ({chapters.length})</h2></div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-lg font-bold">Course Chapters ({filteredChapters.length})</h2>
+        <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <option value="">All courses</option>
+          {paidCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </div>
+
+      {selectedCourseId && (
       <div className="glass rounded-xl p-6 space-y-3">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Add New Chapter</h3>
         <div className="grid gap-3 md:grid-cols-2">
@@ -908,7 +936,11 @@ function CourseContentEditor() {
         </div>
         <Button onClick={addChapter} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}<Plus className="w-4 h-4 mr-1" /> Add Chapter</Button>
       </div>
-      {chapters.map((ch) => (
+      )}
+
+      {!selectedCourseId && <p className="text-muted-foreground text-sm">Select a course to add chapters.</p>}
+
+      {filteredChapters.map((ch) => (
         <div key={ch.id} className="glass rounded-xl p-6 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => setEditingId(editingId === ch.id ? null : ch.id)}>{ch.title}</h3>

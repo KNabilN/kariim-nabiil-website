@@ -54,6 +54,7 @@ export type Database = {
       }
       course_chapters: {
         Row: {
+          course_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -63,6 +64,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          course_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -72,6 +74,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          course_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -80,7 +83,15 @@ export type Database = {
           title?: string
           youtube_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "course_chapters_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_student_access: {
         Row: {
