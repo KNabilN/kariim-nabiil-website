@@ -185,7 +185,11 @@ function PaymentsTab({ userId }: { userId: string }) {
       <div className="flex gap-4 mb-2">
         <div className="glass rounded-xl p-4 flex-1 text-center">
           <DollarSign className="w-5 h-5 mx-auto mb-1 text-green-500" />
-          <p className="text-2xl font-bold text-green-500">{totalRevenue.toFixed(2)}</p>
+          <div className="space-y-0.5">
+            {Object.keys(revenueByCurrency).length > 0 ? Object.entries(revenueByCurrency).map(([cur, amt]) => (
+              <p key={cur} className="text-lg font-bold text-green-500">{amt.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{cur}</span></p>
+            )) : <p className="text-2xl font-bold text-green-500">0.00</p>}
+          </div>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
         <div className="glass rounded-xl p-4 flex-1 text-center">
