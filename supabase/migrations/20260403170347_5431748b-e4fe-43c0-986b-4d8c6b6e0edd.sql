@@ -1,0 +1,1 @@
+ALTER TABLE public.course_chapters ADD COLUMN course_id uuid REFERENCES public.paid_courses(id) ON DELETE CASCADE;
