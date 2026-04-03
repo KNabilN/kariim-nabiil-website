@@ -104,6 +104,11 @@ const Admin = () => {
           <TabsContent value="courses">
             <CoursesEditor courses={courses} onSave={saveCourses} />
           </TabsContent>
+
+          {/* COURSE CONTENT TAB */}
+          <TabsContent value="course-content">
+            <CourseContentEditor />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
