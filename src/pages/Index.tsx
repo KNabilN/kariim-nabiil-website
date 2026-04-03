@@ -6,6 +6,7 @@ import Projects from "@/components/Projects";
 import Experience from "@/components/Experience";
 import TrustedBy from "@/components/TrustedBy";
 import Courses from "@/components/Courses";
+import CourseCTA from "@/components/CourseCTA";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 
@@ -21,6 +22,7 @@ const Index = () => {
         <Experience />
         <TrustedBy />
         <Courses />
+        <CourseCTA />
         <Contact />
       </main>
       <Footer />
