@@ -68,10 +68,10 @@ const CourseLanding = () => {
       <section id="enroll" className="section-padding">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-3xl font-bold text-center mb-4">
-            Enroll <span className="text-gradient">Now</span>
+            Get Course <span className="text-gradient">Resources</span>
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-lg mx-auto">
-            Choose your preferred payment method, complete the transfer, and upload your screenshot. We'll activate your access within 24 hours.
+            Fill in your details to get access to all course resources, templates, and downloadable files.
           </p>
           <div className="glass rounded-2xl p-8">
             <PaymentForm />
