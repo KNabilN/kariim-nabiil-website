@@ -231,7 +231,7 @@ function PaidCoursesManager() {
           <div className="w-[90px]">
             <Label>Currency</Label>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option>
+              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
             </select>
           </div>
           <Button type="submit" disabled={saving}>
@@ -402,7 +402,7 @@ function CourseStudentsSection() {
           <div className="w-[80px]">
             <Label>Currency</Label>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option>
+              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
             </select>
           </div>
           <Button type="submit" disabled={addLoading}>
@@ -492,6 +492,14 @@ function CoursePaymentsSection({ userId }: { userId: string }) {
   }, [payments, filterCourse, dateFrom, dateTo]);
 
   const approvedPayments = useMemo(() => filteredPayments.filter(p => p.status === "approved"), [filteredPayments]);
+  const revenueByCurrency = useMemo(() => {
+    const map: Record<string, number> = {};
+    approvedPayments.forEach(p => {
+      const cur = p.currency || "EGP";
+      map[cur] = (map[cur] || 0) + (p.amount || 0);
+    });
+    return map;
+  }, [approvedPayments]);
   const totalRevenue = useMemo(() => approvedPayments.reduce((sum, p) => sum + (p.amount || 0), 0), [approvedPayments]);
   const avgPayment = approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0;
 
@@ -533,7 +541,11 @@ function CoursePaymentsSection({ userId }: { userId: string }) {
       <div className="flex gap-4 mb-2">
         <div className="glass rounded-xl p-4 flex-1 text-center">
           <DollarSign className="w-5 h-5 mx-auto mb-1 text-green-500" />
-          <p className="text-2xl font-bold text-green-500">{totalRevenue.toFixed(2)}</p>
+          <div className="space-y-0.5">
+            {Object.keys(revenueByCurrency).length > 0 ? Object.entries(revenueByCurrency).map(([cur, amt]) => (
+              <p key={cur} className="text-lg font-bold text-green-500">{amt.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{cur}</span></p>
+            )) : <p className="text-2xl font-bold text-green-500">0.00</p>}
+          </div>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
         <div className="glass rounded-xl p-4 flex-1 text-center">
