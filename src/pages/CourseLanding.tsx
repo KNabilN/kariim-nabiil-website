@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import PaymentForm from "@/components/course/PaymentForm";
-import { BookOpen, CheckCircle, ArrowLeft, Play, Users, Globe, Zap } from "lucide-react";
+import { BookOpen, CheckCircle, ArrowLeft, Youtube, FolderDown, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const WHAT_YOU_LEARN = [
@@ -32,18 +32,17 @@ const CourseLanding = () => {
       <section className="section-padding text-center">
         <div className="container mx-auto max-w-4xl">
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
-            <Zap className="w-4 h-4" /> Premium Course
+            <Zap className="w-4 h-4" /> Free Course — Live Now
           </span>
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Advanced <span className="text-gradient">n8n</span> Automation
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Master advanced n8n automation workflows with AI integrations. Build production-ready systems that save hours of manual work.
+            A free course streaming live on YouTube. Enroll to get exclusive access to course resources, downloadable files, and project templates.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2"><Play className="w-4 h-4 text-primary" /> 20+ Video Lessons</span>
-            <span className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> 200+ Students</span>
-            <span className="flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Lifetime Access</span>
+            <span className="flex items-center gap-2"><Youtube className="w-4 h-4 text-primary" /> Live on YouTube</span>
+            <span className="flex items-center gap-2"><FolderDown className="w-4 h-4 text-primary" /> Exclusive Resources</span>
           </div>
         </div>
       </section>
@@ -69,10 +68,10 @@ const CourseLanding = () => {
       <section id="enroll" className="section-padding">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-3xl font-bold text-center mb-4">
-            Enroll <span className="text-gradient">Now</span>
+            Get Course <span className="text-gradient">Resources</span>
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-lg mx-auto">
-            Choose your preferred payment method, complete the transfer, and upload your screenshot. We'll activate your access within 24 hours.
+            Fill in your details to get access to all course resources, templates, and downloadable files.
           </p>
           <div className="glass rounded-2xl p-8">
             <PaymentForm />
