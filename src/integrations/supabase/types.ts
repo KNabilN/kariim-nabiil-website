@@ -82,6 +82,42 @@ export type Database = {
         }
         Relationships: []
       }
+      course_student_access: {
+        Row: {
+          course_id: string
+          granted_at: string | null
+          id: string
+          student_id: string
+        }
+        Insert: {
+          course_id: string
+          granted_at?: string | null
+          id?: string
+          student_id: string
+        }
+        Update: {
+          course_id?: string
+          granted_at?: string | null
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_student_access_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_student_access_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "course_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_students: {
         Row: {
           added_by: string
@@ -109,9 +145,37 @@ export type Database = {
         }
         Relationships: []
       }
+      paid_courses: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          price: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       payment_submissions: {
         Row: {
           amount: number | null
+          course_id: string | null
           created_at: string
           currency: string | null
           email: string
@@ -126,6 +190,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          course_id?: string | null
           created_at?: string
           currency?: string | null
           email: string
@@ -140,6 +205,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          course_id?: string | null
           created_at?: string
           currency?: string | null
           email?: string
@@ -152,7 +218,15 @@ export type Database = {
           screenshot_url?: string
           status?: Database["public"]["Enums"]["payment_status"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_submissions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_devices: {
         Row: {
