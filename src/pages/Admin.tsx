@@ -239,6 +239,8 @@ function CourseStudentsSection() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("EGP");
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
@@ -259,14 +261,28 @@ function CourseStudentsSection() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddLoading(true);
+    const trimmedEmail = email.trim().toLowerCase();
     await supabase.from("course_students").upsert(
-      { email: email.trim().toLowerCase(), full_name: name, is_active: true, added_by: "admin" },
+      { email: trimmedEmail, full_name: name, is_active: true, added_by: "admin" },
       { onConflict: "email" }
     );
+    // Also create an approved payment record
+    await supabase.from("payment_submissions").insert({
+      email: trimmedEmail,
+      full_name: name,
+      phone: "-",
+      payment_method: "instapay" as any,
+      screenshot_url: "-",
+      status: "approved" as any,
+      amount: amount ? parseFloat(amount) : null,
+      currency,
+      reviewed_at: new Date().toISOString(),
+    });
     setAddLoading(false);
     setAddSuccess(true);
     setName("");
     setEmail("");
+    setAmount("");
     setTimeout(() => setAddSuccess(false), 3000);
     fetchStudents();
   };
@@ -295,13 +311,25 @@ function CourseStudentsSection() {
       <div className="glass rounded-xl p-6">
         <h3 className="font-semibold mb-4 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Add Student</h3>
         <form onSubmit={handleAdd} className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[180px]">
+          <div className="flex-1 min-w-[160px]">
             <Label>Full Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" placeholder="Student name" />
           </div>
-          <div className="flex-1 min-w-[180px]">
+          <div className="flex-1 min-w-[160px]">
             <Label>Email</Label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="student@email.com" />
+          </div>
+          <div className="w-[120px]">
+            <Label>Amount</Label>
+            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1" placeholder="0.00" />
+          </div>
+          <div className="w-[90px]">
+            <Label>Currency</Label>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="EGP">EGP</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
           </div>
           <Button type="submit" disabled={addLoading}>
             {addLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
