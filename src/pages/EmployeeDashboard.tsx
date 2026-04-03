@@ -448,7 +448,7 @@ function AddStudentTab() {
           <div className="w-[100px]">
             <Label>Currency</Label>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option>
+              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
             </select>
           </div>
         </div>
