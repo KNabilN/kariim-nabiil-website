@@ -8,14 +8,14 @@ import scsLogo from "@/assets/logos/scs.png";
 import saharaCompleteLogo from "@/assets/logos/sahara-complete.png";
 
 const logos = [
-  { src: trigzLogo, alt: "Trigz", invert: false },
-  { src: pegasusLogo, alt: "Pegasus", invert: true },
-  { src: provinLogo, alt: "Provin", invert: true },
-  { src: maniaLogo, alt: "Mania", invert: false },
-  { src: aiLogo, alt: "Zaher AI", invert: false },
-  { src: mantouqLogo, alt: "Mantouq", invert: false },
-  { src: scsLogo, alt: "SCS - Sahara Chemical Solutions", invert: false },
-  { src: saharaCompleteLogo, alt: "Sahara Complete", invert: false },
+  { src: trigzLogo, alt: "Trigz", invertDark: false },
+  { src: pegasusLogo, alt: "Pegasus", invertDark: true },
+  { src: provinLogo, alt: "Provin", invertDark: true },
+  { src: maniaLogo, alt: "Mania", invertDark: false },
+  { src: aiLogo, alt: "Zaher AI", invertDark: false },
+  { src: mantouqLogo, alt: "Mantouq", invertDark: false },
+  { src: scsLogo, alt: "SCS - Sahara Chemical Solutions", invertDark: false },
+  { src: saharaCompleteLogo, alt: "Sahara Complete", invertDark: false },
 ];
 
 const TrustedBy = () => {
@@ -45,7 +45,7 @@ const TrustedBy = () => {
               <img
                 src={logo.src}
                 alt={logo.alt}
-                className={`h-16 md:h-20 lg:h-24 w-auto max-w-[180px] md:max-w-[220px] object-contain opacity-75 group-hover:opacity-100 transition-all duration-300 grayscale group-hover:grayscale-0 ${logo.invert ? 'invert' : ''}`}
+                className={`h-16 md:h-20 lg:h-24 w-auto max-w-[180px] md:max-w-[220px] object-contain opacity-75 group-hover:opacity-100 transition-all duration-300 grayscale group-hover:grayscale-0 ${logo.invertDark ? 'dark:invert' : ''}`}
               />
             </div>
           ))}
