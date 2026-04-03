@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import CourseLanding from "./pages/CourseLanding";
 import CourseLearn from "./pages/CourseLearn";
 import TeamDashboard from "./pages/TeamDashboard";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/course/advanced-n8n" element={<CourseLanding />} />
           <Route path="/course/learn" element={<CourseLearn />} />
           <Route path="/team-dashboard" element={<TeamDashboard />} />
+          <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
