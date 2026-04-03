@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  LogOut, Check, X, Loader2, Plus, UserMinus, Eye, Clock, Users, CreditCard
+  LogOut, Check, X, Loader2, Plus, UserMinus, Eye, Clock, Users, CreditCard, Pencil, Save, BookOpen
 } from "lucide-react";
 
 const TeamDashboard = () => {
