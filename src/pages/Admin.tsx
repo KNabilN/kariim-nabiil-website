@@ -11,7 +11,11 @@ import {
   defaultHeroContent, defaultStats, defaultCourses,
   type HeroContent, type StatItem, type CourseItem,
 } from "@/data/siteContent";
-import { LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload, Users } from "lucide-react";
+import {
+  LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload, Users,
+  Briefcase, GraduationCap, ChevronDown, ChevronRight, CreditCard,
+  Check, X, Eye, Clock, UserMinus, UserPlus,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
@@ -133,31 +137,26 @@ const Admin = () => {
       </header>
 
       <div className="container mx-auto px-6 py-8">
-        <Tabs defaultValue="projects">
-          <TabsList className="mb-8 flex-wrap">
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="hero">Hero</TabsTrigger>
-            <TabsTrigger value="stats">Stats</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="course-content">Course Content</TabsTrigger>
-            <TabsTrigger value="employees"><Users className="w-4 h-4 mr-1" /> Employees</TabsTrigger>
+        <Tabs defaultValue="portfolio">
+          <TabsList className="mb-8">
+            <TabsTrigger value="portfolio"><Briefcase className="w-4 h-4 mr-1.5" /> Portfolio</TabsTrigger>
+            <TabsTrigger value="course"><GraduationCap className="w-4 h-4 mr-1.5" /> Advanced Course</TabsTrigger>
+            <TabsTrigger value="employees"><Users className="w-4 h-4 mr-1.5" /> Employees</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="projects">
-            <ProjectsEditor projects={projects} onSave={saveProjects} />
+          <TabsContent value="portfolio">
+            <PortfolioTab
+              projects={projects} saveProjects={saveProjects}
+              hero={hero} saveHero={saveHero}
+              stats={stats} saveStats={saveStats}
+              courses={courses} saveCourses={saveCourses}
+            />
           </TabsContent>
-          <TabsContent value="hero">
-            <HeroEditor hero={hero} onSave={saveHero} />
+
+          <TabsContent value="course">
+            <AdvancedCourseTab userId={session.user.id} />
           </TabsContent>
-          <TabsContent value="stats">
-            <StatsEditor stats={stats} onSave={saveStats} />
-          </TabsContent>
-          <TabsContent value="courses">
-            <CoursesEditor courses={courses} onSave={saveCourses} />
-          </TabsContent>
-          <TabsContent value="course-content">
-            <CourseContentEditor />
-          </TabsContent>
+
           <TabsContent value="employees">
             <EmployeesTab session={session} />
           </TabsContent>
@@ -166,6 +165,270 @@ const Admin = () => {
     </div>
   );
 };
+
+// ─── Collapsible Section ──────────────────────────────────────────
+function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="glass rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-secondary/30 transition-colors"
+      >
+        <h2 className="text-lg font-bold">{title}</h2>
+        {open ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Portfolio Tab ──────────────────────────────────────────────
+function PortfolioTab({
+  projects, saveProjects, hero, saveHero, stats, saveStats, courses, saveCourses,
+}: {
+  projects: Project[]; saveProjects: (p: Project[]) => void;
+  hero: HeroContent; saveHero: (h: HeroContent) => void;
+  stats: StatItem[]; saveStats: (s: StatItem[]) => void;
+  courses: CourseItem[]; saveCourses: (c: CourseItem[]) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <CollapsibleSection title="Hero Section" defaultOpen>
+        <HeroEditor hero={hero} onSave={saveHero} />
+      </CollapsibleSection>
+      <CollapsibleSection title={`Projects (${projects.length})`}>
+        <ProjectsEditor projects={projects} onSave={saveProjects} />
+      </CollapsibleSection>
+      <CollapsibleSection title={`Stats (${stats.length})`}>
+        <StatsEditor stats={stats} onSave={saveStats} />
+      </CollapsibleSection>
+      <CollapsibleSection title={`Courses (${courses.length})`}>
+        <CoursesEditor courses={courses} onSave={saveCourses} />
+      </CollapsibleSection>
+    </div>
+  );
+}
+
+// ─── Advanced Course Tab ──────────────────────────────────────────
+function AdvancedCourseTab({ userId }: { userId: string }) {
+  return (
+    <Tabs defaultValue="content">
+      <TabsList className="mb-6">
+        <TabsTrigger value="content"><Upload className="w-4 h-4 mr-1" /> Content</TabsTrigger>
+        <TabsTrigger value="students"><Users className="w-4 h-4 mr-1" /> Students</TabsTrigger>
+        <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-1" /> Payments</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="content">
+        <CourseContentEditor />
+      </TabsContent>
+      <TabsContent value="students">
+        <CourseStudentsSection />
+      </TabsContent>
+      <TabsContent value="payments">
+        <CoursePaymentsSection userId={userId} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+// ─── Course Students Section ──────────────────────────────────────
+function CourseStudentsSection() {
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("course_students").select("*").order("created_at", { ascending: false });
+    setStudents(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchStudents(); }, []);
+
+  const toggleActive = async (id: string, current: boolean) => {
+    await supabase.from("course_students").update({ is_active: !current }).eq("id", id);
+    fetchStudents();
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    await supabase.from("course_students").upsert(
+      { email: email.trim().toLowerCase(), full_name: name, is_active: true, added_by: "admin" },
+      { onConflict: "email" }
+    );
+    setAddLoading(false);
+    setAddSuccess(true);
+    setName("");
+    setEmail("");
+    setTimeout(() => setAddSuccess(false), 3000);
+    fetchStudents();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="flex gap-4">
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-primary">{students.length}</p>
+          <p className="text-sm text-muted-foreground">Total Students</p>
+        </div>
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-green-500">{students.filter(s => s.is_active).length}</p>
+          <p className="text-sm text-muted-foreground">Active</p>
+        </div>
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-destructive">{students.filter(s => !s.is_active).length}</p>
+          <p className="text-sm text-muted-foreground">Inactive</p>
+        </div>
+      </div>
+
+      {/* Add Student Form */}
+      <div className="glass rounded-xl p-6">
+        <h3 className="font-semibold mb-4 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Add Student</h3>
+        <form onSubmit={handleAdd} className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[180px]">
+            <Label>Full Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" placeholder="Student name" />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="student@email.com" />
+          </div>
+          <Button type="submit" disabled={addLoading}>
+            {addLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+            Add
+          </Button>
+        </form>
+        {addSuccess && <p className="text-green-500 text-sm mt-2">Student added successfully!</p>}
+      </div>
+
+      {/* Student List */}
+      <div className="space-y-3">
+        {students.map((s) => (
+          <div key={s.id} className="glass rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{s.full_name}</p>
+              <p className="text-sm text-muted-foreground">{s.email} · Added via {s.added_by}</p>
+            </div>
+            <Button
+              variant={s.is_active ? "destructive" : "default"}
+              size="sm"
+              onClick={() => toggleActive(s.id, s.is_active)}
+            >
+              {s.is_active ? <><UserMinus className="w-4 h-4 mr-1" /> Deactivate</> : "Activate"}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Course Payments Section ──────────────────────────────────────
+function CoursePaymentsSection({ userId }: { userId: string }) {
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("payment_submissions").select("*").order("created_at", { ascending: false });
+    setPayments(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPayments(); }, []);
+
+  const handleAction = async (id: string, status: "approved" | "rejected", email: string, fullName: string) => {
+    setActionLoading(id);
+    await supabase.from("payment_submissions")
+      .update({ status, reviewed_by: userId, reviewed_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (status === "approved") {
+      await supabase.from("course_students").upsert(
+        { email, full_name: fullName, is_active: true, added_by: "payment" },
+        { onConflict: "email" }
+      );
+    }
+    setActionLoading(null);
+    fetchPayments();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="flex gap-4 mb-2">
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-yellow-500">{payments.filter(p => p.status === "pending").length}</p>
+          <p className="text-sm text-muted-foreground">Pending</p>
+        </div>
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-green-500">{payments.filter(p => p.status === "approved").length}</p>
+          <p className="text-sm text-muted-foreground">Approved</p>
+        </div>
+        <div className="glass rounded-xl p-4 flex-1 text-center">
+          <p className="text-3xl font-bold text-destructive">{payments.filter(p => p.status === "rejected").length}</p>
+          <p className="text-sm text-muted-foreground">Rejected</p>
+        </div>
+      </div>
+
+      {payments.length === 0 ? (
+        <p className="text-muted-foreground">No submissions yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {payments.map((p) => (
+            <div key={p.id} className="glass rounded-xl p-6 space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold">{p.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{p.email} · {p.phone}</p>
+                </div>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  p.status === "approved" ? "bg-green-500/10 text-green-500" :
+                  p.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                  "bg-yellow-500/10 text-yellow-500"
+                }`}>
+                  {p.status}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="capitalize">{p.payment_method?.replace("_", " ")}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(p.created_at).toLocaleDateString()}</span>
+              </div>
+              {p.screenshot_url && (
+                <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary text-sm hover:underline">
+                  <Eye className="w-4 h-4" /> View Screenshot
+                </a>
+              )}
+              {p.status === "pending" && (
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" onClick={() => handleAction(p.id, "approved", p.email, p.full_name)} disabled={actionLoading === p.id}>
+                    <Check className="w-4 h-4 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleAction(p.id, "rejected", p.email, p.full_name)} disabled={actionLoading === p.id}>
+                    <X className="w-4 h-4 mr-1" /> Reject
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Employees Tab ──────────────────────────────────────────────
 function EmployeesTab({ session }: { session: any }) {
@@ -224,7 +487,6 @@ function EmployeesTab({ session }: { session: any }) {
 
   return (
     <div className="space-y-8">
-      {/* Add Employee Form */}
       <div className="max-w-md">
         <h2 className="text-lg font-bold mb-4">Add Employee</h2>
         <form onSubmit={handleAdd} className="space-y-4">
@@ -249,7 +511,6 @@ function EmployeesTab({ session }: { session: any }) {
         </form>
       </div>
 
-      {/* Employee List */}
       <div>
         <h2 className="text-lg font-bold mb-4">Team Members ({employees.length})</h2>
         {employees.length === 0 ? (
@@ -316,17 +577,14 @@ function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p:
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Projects ({items.length})</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
-          <Button variant="outline" size="sm" onClick={addProject}><Plus className="w-4 h-4 mr-1" /> Add</Button>
-          <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
+        <Button variant="outline" size="sm" onClick={addProject}><Plus className="w-4 h-4 mr-1" /> Add</Button>
+        <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
       </div>
 
       {items.map((project) => (
-        <div key={project.id} className="glass rounded-xl p-6 space-y-4">
+        <div key={project.id} className="border border-border/50 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3
               className="font-semibold cursor-pointer hover:text-primary transition-colors"
@@ -436,15 +694,12 @@ function HeroEditor({ hero, onSave }: { hero: HeroContent; onSave: (h: HeroConte
   const reset = () => { setData(defaultHeroContent); onSave(defaultHeroContent); };
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Hero Section</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
-          <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
+        <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
       </div>
-      <div className="glass rounded-xl p-6 grid gap-4">
+      <div className="grid gap-4">
         {(Object.keys(data) as (keyof HeroContent)[]).map((key) => (
           <div key={key}>
             <Label className="capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
@@ -469,16 +724,13 @@ function StatsEditor({ stats, onSave }: { stats: StatItem[]; onSave: (s: StatIte
   const reset = () => { setItems(defaultStats); onSave(defaultStats); };
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Stats</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
-          <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
+        <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
       </div>
       {items.map((stat) => (
-        <div key={stat.id} className="glass rounded-xl p-6 grid gap-3 md:grid-cols-2">
+        <div key={stat.id} className="border border-border/50 rounded-xl p-4 grid gap-3 md:grid-cols-2">
           <div><Label>Value</Label><Input value={stat.value} onChange={(e) => updateField(stat.id, "value", e.target.value)} className="mt-1" /></div>
           <div><Label>Label</Label><Input value={stat.label} onChange={(e) => updateField(stat.id, "label", e.target.value)} className="mt-1" /></div>
           <div><Label>Description</Label><Input value={stat.description} onChange={(e) => updateField(stat.id, "description", e.target.value)} className="mt-1" /></div>
@@ -503,17 +755,14 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
   const reset = () => { setItems(defaultCourses); onSave(defaultCourses); };
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Courses ({items.length})</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
-          <Button variant="outline" size="sm" onClick={addCourse}><Plus className="w-4 h-4 mr-1" /> Add</Button>
-          <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="w-4 h-4 mr-1" /> Reset</Button>
+        <Button variant="outline" size="sm" onClick={addCourse}><Plus className="w-4 h-4 mr-1" /> Add</Button>
+        <Button size="sm" onClick={save}><Save className="w-4 h-4 mr-1" /> Save</Button>
       </div>
       {items.map((course) => (
-        <div key={course.id} className="glass rounded-xl p-6 space-y-3">
+        <div key={course.id} className="border border-border/50 rounded-xl p-6 space-y-3">
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">{course.title || "Untitled"}</h3>
             <Button variant="ghost" size="sm" onClick={() => removeCourse(course.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
