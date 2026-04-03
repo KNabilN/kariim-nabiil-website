@@ -9,8 +9,8 @@ import saharaCompleteLogo from "@/assets/logos/sahara-complete.png";
 
 const logos = [
   { src: trigzLogo, alt: "Trigz", invert: false },
-  { src: pegasusLogo, alt: "Pegasus", invert: true },
-  { src: provinLogo, alt: "Provin", invert: true },
+  { src: pegasusLogo, alt: "Pegasus", invertDark: true },
+  { src: provinLogo, alt: "Provin", invertDark: true },
   { src: maniaLogo, alt: "Mania", invert: false },
   { src: aiLogo, alt: "Zaher AI", invert: false },
   { src: mantouqLogo, alt: "Mantouq", invert: false },
