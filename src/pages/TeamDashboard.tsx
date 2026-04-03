@@ -108,16 +108,19 @@ const TeamDashboard = () => {
 
 function PaymentsTab({ userId }: { userId: string }) {
   const [payments, setPayments] = useState<any[]>([]);
+  const [paidCourses, setPaidCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [approvalCourseMap, setApprovalCourseMap] = useState<Record<string, string>>({});
 
   const fetchPayments = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("payment_submissions")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setPayments(data || []);
+    const [{ data: paymentsData }, { data: coursesData }] = await Promise.all([
+      supabase.from("payment_submissions").select("*").order("created_at", { ascending: false }),
+      supabase.from("paid_courses").select("*"),
+    ]);
+    setPayments(paymentsData || []);
+    setPaidCourses(coursesData || []);
     setLoading(false);
   };
 
@@ -125,21 +128,32 @@ function PaymentsTab({ userId }: { userId: string }) {
 
   const handleAction = async (id: string, status: "approved" | "rejected", email: string, fullName: string) => {
     setActionLoading(id);
-    
-    await supabase
-      .from("payment_submissions")
-      .update({ status, reviewed_by: userId, reviewed_at: new Date().toISOString() })
+    const courseId = approvalCourseMap[id] || null;
+
+    await supabase.from("payment_submissions")
+      .update({ status, reviewed_by: userId, reviewed_at: new Date().toISOString(), course_id: courseId })
       .eq("id", id);
 
     if (status === "approved") {
-      await supabase.from("course_students").upsert(
+      const { data: studentData } = await supabase.from("course_students").upsert(
         { email, full_name: fullName, is_active: true, added_by: "payment" },
         { onConflict: "email" }
-      );
-    }
+      ).select("id").single();
 
+      if (studentData && courseId) {
+        await supabase.from("course_student_access").upsert(
+          { student_id: studentData.id, course_id: courseId },
+          { onConflict: "student_id,course_id" }
+        );
+      }
+    }
     setActionLoading(null);
     fetchPayments();
+  };
+
+  const getCourseName = (courseId: string | null) => {
+    if (!courseId) return null;
+    return paidCourses.find(c => c.id === courseId)?.title || "Unknown";
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
@@ -168,16 +182,28 @@ function PaymentsTab({ userId }: { userId: string }) {
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="capitalize">{p.payment_method?.replace("_", " ")}</span>
+                {p.amount && <span>{p.amount} {p.currency || "EGP"}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(p.created_at).toLocaleDateString()}</span>
               </div>
-              {p.screenshot_url && (
+              {p.course_id && getCourseName(p.course_id) && (
+                <p className="text-xs text-primary">Course: {getCourseName(p.course_id)}</p>
+              )}
+              {p.screenshot_url && p.screenshot_url !== "-" && (
                 <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary text-sm hover:underline">
                   <Eye className="w-4 h-4" /> View Screenshot
                 </a>
               )}
               {p.status === "pending" && (
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" onClick={() => handleAction(p.id, "approved", p.email, p.full_name)} disabled={actionLoading === p.id}>
+                <div className="flex gap-2 pt-2 items-center flex-wrap">
+                  <select
+                    value={approvalCourseMap[p.id] || ""}
+                    onChange={(e) => setApprovalCourseMap(prev => ({ ...prev, [p.id]: e.target.value }))}
+                    className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="">Select course</option>
+                    {paidCourses.filter(c => c.is_active).map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => handleAction(p.id, "approved", p.email, p.full_name)} disabled={actionLoading === p.id || !approvalCourseMap[p.id]}>
                     <Check className="w-4 h-4 mr-1" /> Approve
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => handleAction(p.id, "rejected", p.email, p.full_name)} disabled={actionLoading === p.id}>
