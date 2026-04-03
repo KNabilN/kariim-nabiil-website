@@ -1,75 +1,74 @@
 
 
-## Plan: Course-Specific Access Control and Fix Resource Downloads
+## Plan: Add Light/Dark Mode Toggle
 
-### Problems
-1. **All chapters shown to all students** — CourseLearn fetches all published chapters regardless of the student's enrolled courses.
-2. **Resource downloads broken** — The `course-resources` storage bucket is private, but the code uses `getPublicUrl()` which only works for public buckets. Downloads return errors.
+### Overview
+Add a light mode theme with a sun/moon toggle button in the navbar. The site currently has dark-only CSS variables. We'll add a proper light theme palette, a theme provider context, and a toggle button.
 
-### Solution
+### Changes
 
-#### 1. Filter chapters by student's enrolled courses
+#### 1. Create Theme Provider (`src/components/ThemeProvider.tsx`)
+- React context that reads/writes `localStorage` key `"theme"` (`"light"` | `"dark"`)
+- Defaults to `"dark"` (current behavior)
+- Toggles `class="dark"` on `<html>` element
+- Exports `useTheme()` hook
 
-**`src/pages/CourseLearn.tsx`**:
-- After DeviceGate returns `studentId`, query `course_student_access` to get the list of `course_id`s the student has access to.
-- Filter `course_chapters` query to only return chapters whose `course_id` is in that list.
-- Show course titles in the sidebar or as a course switcher if the student has multiple courses.
+#### 2. Update CSS Variables (`src/index.css`)
+- Move current dark variables under `.dark` selector
+- Add light mode `:root` variables with a clean, professional light palette:
+  - Background: white/light gray
+  - Card: soft gray
+  - Foreground: dark text
+  - Primary: keep the same teal/cyan (`185 85% 45%` slightly adjusted for contrast on white)
+  - Muted, border, input: light gray tones
+  - Reduce glow intensity for light mode
+- Update `.glass` class to adapt (lighter backdrop in light mode)
 
-#### 2. Fix resource downloads with signed URLs
+#### 3. Add Toggle Button to Navbar (`src/components/Navbar.tsx`)
+- Sun/Moon icon button next to the nav links
+- Calls `toggleTheme()` from the provider
+- Also add to mobile menu
 
-**`src/components/course/ChapterViewer.tsx`**:
-- Replace the direct `file_url` link (which points to a non-public bucket) with a signed URL approach.
-- Extract the storage path from the `file_url`, then call `supabase.storage.from("course-resources").createSignedUrl(path, 3600)` to generate a temporary download link.
-- The download button triggers this signed URL generation on click.
+#### 4. Wrap App with ThemeProvider (`src/App.tsx`)
+- Wrap the entire app in `<ThemeProvider>`
 
-**`src/pages/Admin.tsx`** (resource upload):
-- Keep storing the file path (not the public URL) in `chapter_resources.file_url`, since the bucket is private. Store just the path like `{chapterId}/{timestamp}_{filename}` instead of the full public URL.
-- Or: keep storing the full URL but extract the path portion when generating signed URLs on the learn page.
+#### 5. Fix Component-Specific Issues
+- **TrustedBy.tsx**: The `invert` class on logos needs to be conditional — invert in dark mode only, no invert in light mode (or vice versa). Use `dark:invert` instead of static `invert`.
+- **Hero.tsx**: Background overlay gradients use `from-background/80` which will adapt automatically.
+- **Experience.tsx, Courses.tsx, Contact.tsx**: `bg-card/30` sections will adapt via CSS variables.
+- **Button hero variant**: The hardcoded HSL values in button variants will still work since they reference the brand color.
+- **Admin/Team/Employee dashboards**: These use semantic Tailwind classes (`bg-background`, `text-foreground`, etc.) so they'll adapt automatically.
 
-#### 3. Route change for multi-course support
+### Light Mode Color Palette
 
-**`src/App.tsx`**:
-- Update route from `/course/learn` to `/course/learn/:courseId?` (optional param).
-- If no courseId param, show a course selection screen listing the student's enrolled courses.
-- If courseId provided, load chapters for that specific course.
+```
+--background: 0 0% 100%        (white)
+--foreground: 220 20% 10%      (near-black)
+--card: 220 15% 97%            (very light gray)
+--card-foreground: 220 20% 10%
+--popover: 0 0% 100%
+--popover-foreground: 220 20% 10%
+--primary: 185 85% 40%         (teal, slightly darker for contrast on white)
+--primary-foreground: 0 0% 100%
+--secondary: 220 15% 93%       (light gray)
+--secondary-foreground: 220 20% 20%
+--muted: 220 15% 95%
+--muted-foreground: 220 10% 45%
+--border: 220 15% 88%
+--input: 220 15% 88%
+--ring: 185 85% 40%
+--shadow-glow: 0 0 40px hsl(185 85% 50% / 0.15)
+--shadow-glow-lg: 0 0 80px hsl(185 85% 50% / 0.2)
+```
 
-### File Changes
+### Files to Create/Edit
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/pages/CourseLearn.tsx` | Add course access check via `course_student_access`, filter chapters by enrolled courses, add course selection UI |
-| `src/components/course/ChapterViewer.tsx` | Replace direct file_url links with signed URL downloads from `course-resources` bucket |
-| `src/App.tsx` | Update route to `/course/learn/:courseId?` |
-
-### Technical Details
-
-**Signed URL download handler:**
-```typescript
-const handleDownload = async (fileUrl: string) => {
-  // Extract path from stored URL
-  const path = fileUrl.split("/course-resources/")[1];
-  const { data } = await supabase.storage
-    .from("course-resources")
-    .createSignedUrl(path, 3600);
-  if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-};
-```
-
-**Chapter filtering by access:**
-```typescript
-const { data: access } = await supabase
-  .from("course_student_access")
-  .select("course_id")
-  .eq("student_id", studentId);
-const courseIds = access?.map(a => a.course_id) || [];
-
-const { data: chapters } = await supabase
-  .from("course_chapters")
-  .select("*")
-  .eq("is_published", true)
-  .in("course_id", courseIds)
-  .order("order_index");
-```
-
-No database migrations needed.
+| `src/components/ThemeProvider.tsx` | Create — context, hook, localStorage persistence |
+| `src/index.css` | Edit — add light variables as `:root` default, move dark under `.dark` |
+| `src/components/Navbar.tsx` | Edit — add theme toggle button |
+| `src/App.tsx` | Edit — wrap with `<ThemeProvider>` |
+| `src/components/TrustedBy.tsx` | Edit — change `invert` to `dark:invert` |
+| `tailwind.config.ts` | Already has `darkMode: ["class"]` — no change needed |
 
