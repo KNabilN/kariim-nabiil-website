@@ -238,41 +238,91 @@ function StudentsTab() {
 function AddStudentTab() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("EGP");
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [paidCourses, setPaidCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    supabase.from("paid_courses").select("*").eq("is_active", true).then(({ data }) => setPaidCourses(data || []));
+  }, []);
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCourseId) return;
     setLoading(true);
-    await supabase.from("course_students").upsert(
-      { email: email.trim().toLowerCase(), full_name: name, is_active: true, added_by: "team" },
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // Upsert student
+    const { data: studentData } = await supabase.from("course_students").upsert(
+      { email: trimmedEmail, full_name: name, is_active: true, added_by: "team" },
       { onConflict: "email" }
-    );
+    ).select("id").single();
+
+    // Grant course access
+    if (studentData) {
+      await supabase.from("course_student_access").upsert(
+        { student_id: studentData.id, course_id: selectedCourseId },
+        { onConflict: "student_id,course_id" }
+      );
+    }
+
+    // Create approved payment record
+    await supabase.from("payment_submissions").insert({
+      email: trimmedEmail,
+      full_name: name,
+      phone: "-",
+      payment_method: "instapay" as any,
+      screenshot_url: "-",
+      status: "approved" as any,
+      amount: amount ? parseFloat(amount) : null,
+      currency,
+      course_id: selectedCourseId,
+      reviewed_at: new Date().toISOString(),
+    });
+
     setLoading(false);
     setSuccess(true);
-    setName("");
-    setEmail("");
+    setName(""); setEmail(""); setAmount(""); setSelectedCourseId("");
     setTimeout(() => setSuccess(false), 3000);
   };
 
   return (
-    <div className="max-w-md">
+    <div className="max-w-2xl">
       <h2 className="text-lg font-bold mb-4">Add Student Manually</h2>
-      <form onSubmit={handleAdd} className="space-y-4">
-        <div>
+      <form onSubmit={handleAdd} className="flex flex-wrap gap-3 items-end">
+        <div className="flex-1 min-w-[140px]">
           <Label>Full Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" placeholder="Student name" />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <Label>Email</Label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" />
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="student@email.com" />
         </div>
-        {success && <p className="text-green-500 text-sm">Student added successfully!</p>}
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Add Student
+        <div className="w-[180px]">
+          <Label>Course *</Label>
+          <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} required className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="">Select course</option>
+            {paidCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </div>
+        <div className="w-[100px]">
+          <Label>Amount</Label>
+          <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1" placeholder="0.00" />
+        </div>
+        <div className="w-[80px]">
+          <Label>Currency</Label>
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
+          </select>
+        </div>
+        <Button type="submit" disabled={loading || !selectedCourseId}>
+          {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />} Add
         </Button>
       </form>
+      {success && <p className="text-green-500 text-sm mt-2">Student added successfully!</p>}
     </div>
   );
 }
