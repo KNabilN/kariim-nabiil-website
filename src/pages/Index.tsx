@@ -22,6 +22,7 @@ const Index = () => {
         <Experience />
         <TrustedBy />
         <Courses />
+        <CourseCTA />
         <Contact />
       </main>
       <Footer />
