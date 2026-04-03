@@ -45,7 +45,7 @@ const TrustedBy = () => {
               <img
                 src={logo.src}
                 alt={logo.alt}
-                className={`h-16 md:h-20 lg:h-24 w-auto max-w-[180px] md:max-w-[220px] object-contain opacity-75 group-hover:opacity-100 transition-all duration-300 grayscale group-hover:grayscale-0 ${logo.invert ? 'invert' : ''}`}
+                className={`h-16 md:h-20 lg:h-24 w-auto max-w-[180px] md:max-w-[220px] object-contain opacity-75 group-hover:opacity-100 transition-all duration-300 grayscale group-hover:grayscale-0 ${logo.invertDark ? 'dark:invert' : ''}`}
               />
             </div>
           ))}
