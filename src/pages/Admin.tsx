@@ -82,6 +82,7 @@ const Admin = () => {
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="stats">Stats</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
+            <TabsTrigger value="course-content">Course Content</TabsTrigger>
           </TabsList>
 
           {/* PROJECTS TAB */}
