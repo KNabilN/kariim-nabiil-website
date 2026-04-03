@@ -1,83 +1,75 @@
 
 
-## Plan: Multi-Course Support, Student Filtering, and Payment Insights
+## Plan: Course-Specific Access Control and Fix Resource Downloads
 
-### Summary
-Introduce a proper "paid courses" system so students are enrolled in specific courses, add filtering/search for students, and add payment analytics with totals by course and date range. Mirror changes in the Employee Dashboard.
+### Problems
+1. **All chapters shown to all students** — CourseLearn fetches all published chapters regardless of the student's enrolled courses.
+2. **Resource downloads broken** — The `course-resources` storage bucket is private, but the code uses `getPublicUrl()` which only works for public buckets. Downloads return errors.
 
-### Database Changes
+### Solution
 
-**1. New `paid_courses` table** — stores courses that can be sold
-```sql
-CREATE TABLE public.paid_courses (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  price numeric DEFAULT 0,
-  currency text DEFAULT 'EGP',
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-```
-With RLS: admin/team can manage, public can read active courses.
+#### 1. Filter chapters by student's enrolled courses
 
-**2. New `course_student_access` junction table** — links students to courses
-```sql
-CREATE TABLE public.course_student_access (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id uuid REFERENCES public.course_students(id) ON DELETE CASCADE,
-  course_id uuid REFERENCES public.paid_courses(id) ON DELETE CASCADE,
-  granted_at timestamptz DEFAULT now(),
-  UNIQUE(student_id, course_id)
-);
-```
+**`src/pages/CourseLearn.tsx`**:
+- After DeviceGate returns `studentId`, query `course_student_access` to get the list of `course_id`s the student has access to.
+- Filter `course_chapters` query to only return chapters whose `course_id` is in that list.
+- Show course titles in the sidebar or as a course switcher if the student has multiple courses.
 
-**3. Add `course_id` column to `payment_submissions`**
-```sql
-ALTER TABLE public.payment_submissions ADD COLUMN course_id uuid REFERENCES public.paid_courses(id);
-```
+#### 2. Fix resource downloads with signed URLs
 
-### Code Changes
+**`src/components/course/ChapterViewer.tsx`**:
+- Replace the direct `file_url` link (which points to a non-public bucket) with a signed URL approach.
+- Extract the storage path from the `file_url`, then call `supabase.storage.from("course-resources").createSignedUrl(path, 3600)` to generate a temporary download link.
+- The download button triggers this signed URL generation on click.
 
-**4. Admin Dashboard (`src/pages/Admin.tsx`)**
+**`src/pages/Admin.tsx`** (resource upload):
+- Keep storing the file path (not the public URL) in `chapter_resources.file_url`, since the bucket is private. Store just the path like `{chapterId}/{timestamp}_{filename}` instead of the full public URL.
+- Or: keep storing the full URL but extract the path portion when generating signed URLs on the learn page.
 
-- **New "Courses" management section** inside Advanced Course tab (as a sub-tab or at the top of Content):
-  - Add/edit/deactivate paid courses (title, price, currency)
-  - Simple list with inline editing
+#### 3. Route change for multi-course support
 
-- **Students sub-tab enhancements**:
-  - Course selector when adding a student (required) — dropdown of paid courses
-  - The student gets an entry in `course_student_access` for that course
-  - Search/filter bar: filter by name/email text search, filter by course dropdown, filter by active/inactive
-  - Show which courses each student has access to
+**`src/App.tsx`**:
+- Update route from `/course/learn` to `/course/learn/:courseId?` (optional param).
+- If no courseId param, show a course selection screen listing the student's enrolled courses.
+- If courseId provided, load chapters for that specific course.
 
-- **Payments sub-tab enhancements**:
-  - Course selector when approving payments (link payment to a course)
-  - **Insights panel** at the top:
-    - Total revenue (sum of approved amounts)
-    - Filter by course dropdown
-    - Filter by date range (from/to date pickers)
-    - Revenue breakdown cards update based on filters
-  - Each payment row shows which course it's for
+### File Changes
 
-**5. Employee Dashboard (`src/pages/EmployeeDashboard.tsx`)**
-  - Mirror the same student filtering, course assignment on add, and payment insights
-  - Employee Add Student form also gets course selector
-
-**6. Course Learn page (`src/pages/CourseLearn.tsx`)**
-  - When a student logs in, check `course_student_access` to verify they have access to the course being viewed (future-proofing for multiple courses)
-
-### File Summary
-
-| File | Action |
+| File | Change |
 |------|--------|
-| Migration SQL | Create `paid_courses`, `course_student_access` tables; add `course_id` to `payment_submissions` |
-| `src/pages/Admin.tsx` | Add course management UI, student filters, course assignment on add, payment insights with date/course filters |
-| `src/pages/EmployeeDashboard.tsx` | Mirror student filters, course assignment, payment insights |
-| `src/integrations/supabase/types.ts` | Auto-updated after migration |
+| `src/pages/CourseLearn.tsx` | Add course access check via `course_student_access`, filter chapters by enrolled courses, add course selection UI |
+| `src/components/course/ChapterViewer.tsx` | Replace direct file_url links with signed URL downloads from `course-resources` bucket |
+| `src/App.tsx` | Update route to `/course/learn/:courseId?` |
 
-### UI/UX Details
+### Technical Details
 
-- **Payment Insights**: Glass cards at top showing Total Revenue, Approved Count, and Average Payment — all reactive to course and date range filters
-- **Student Filters**: A row of controls above the student list — text search input, course dropdown, active/inactive toggle — results update instantly
-- **Course Management**: A simple collapsible section within the Advanced Course tab for adding/editing paid courses before the Content sub-tab
+**Signed URL download handler:**
+```typescript
+const handleDownload = async (fileUrl: string) => {
+  // Extract path from stored URL
+  const path = fileUrl.split("/course-resources/")[1];
+  const { data } = await supabase.storage
+    .from("course-resources")
+    .createSignedUrl(path, 3600);
+  if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+};
+```
+
+**Chapter filtering by access:**
+```typescript
+const { data: access } = await supabase
+  .from("course_student_access")
+  .select("course_id")
+  .eq("student_id", studentId);
+const courseIds = access?.map(a => a.course_id) || [];
+
+const { data: chapters } = await supabase
+  .from("course_chapters")
+  .select("*")
+  .eq("is_published", true)
+  .in("course_id", courseIds)
+  .order("order_index");
+```
+
+No database migrations needed.
 
