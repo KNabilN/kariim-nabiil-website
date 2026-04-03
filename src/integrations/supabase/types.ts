@@ -14,16 +14,210 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chapter_resources: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          title: string
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          title: string
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapter_resources_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "course_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_chapters: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          order_index: number
+          title: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title?: string
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      course_students: {
+        Row: {
+          added_by: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          added_by?: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      payment_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          phone: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screenshot_url: string
+          status: Database["public"]["Enums"]["payment_status"]
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          phone: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url: string
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          phone?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Relationships: []
+      }
+      student_devices: {
+        Row: {
+          created_at: string
+          device_fingerprint: string
+          device_name: string
+          id: string
+          last_seen_at: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint: string
+          device_name?: string
+          id?: string
+          last_seen_at?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string
+          device_name?: string
+          id?: string
+          last_seen_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_devices_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "course_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "team"
+      payment_method: "paypal" | "instapay" | "vodafone_cash"
+      payment_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +344,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "team"],
+      payment_method: ["paypal", "instapay", "vodafone_cash"],
+      payment_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
