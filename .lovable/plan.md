@@ -1,61 +1,37 @@
 
 
-## Plan: Migrate Admin to Supabase Auth + Employee Management
+## Plan: Reorganize Admin Dashboard
 
 ### Summary
-Replace the hardcoded admin login with Supabase authentication, create the admin user with the specified credentials, and add the ability for the admin to create employee accounts (with name, email, password) that can log into their own dashboard page.
+Restructure the admin dashboard into cleaner, more focused tabs. Merge course-related management (content, resources, students, payments) into a single "Advanced Course" tab, and improve the overall layout of remaining tabs.
 
-### Database Changes
+### New Tab Structure
 
-**1. Create an edge function to manage employees**
-- An `invite-employee` edge function that uses the Supabase Admin API (`supabase.auth.admin.createUser`) to create new auth users with email + password
-- Automatically inserts a `team` role into `user_roles` for the new user
-- Requires the `SUPABASE_SERVICE_ROLE_KEY` secret (already available)
+```text
+Current:  Projects | Hero | Stats | Courses | Course Content | Employees
+New:      Portfolio | Advanced Course | Employees
+```
 
-**2. Create admin user manually**
-- Use Supabase dashboard or edge function to create user `karimnouh112@gmail.com` with password `K@admin123`
-- Insert an `admin` role into `user_roles` for this user
+- **Portfolio** tab: Combines Projects, Hero, Stats, and Courses editors into sub-sections with collapsible cards. All portfolio site content in one place.
+- **Advanced Course** tab: A dedicated course management hub with internal sub-tabs:
+  - **Content** — Chapter management with resource uploads (existing CourseContentEditor + ChapterResourcesEditor)
+  - **Students** — Student list with count, emails, active/inactive toggle (from TeamDashboard's StudentsTab + AddStudentTab)
+  - **Payments** — Payment submissions review (from TeamDashboard's PaymentsTab)
+- **Employees** tab: Stays as-is (add/remove team members)
 
-### Code Changes
+### File Changes
 
-**3. Rewrite `src/pages/Admin.tsx` login flow**
-- Replace hardcoded credentials with `supabase.auth.signInWithPassword`
-- After login, check `user_roles` for `admin` role; deny access if not admin
-- Keep all existing admin tabs (Projects, Hero, Stats, Courses, Course Content)
-- Add a new **"Employees"** tab with:
-  - Form to add employee: Name, Email, Password fields
-  - Calls the `invite-employee` edge function
-  - Lists existing team members (from `user_roles` joined concept)
-  - Ability to remove employees
-
-**4. Create `src/pages/EmployeeDashboard.tsx`**
-- Similar to TeamDashboard but specifically for employees with `team` role
-- Supabase auth login (email/password)
-- After login, verify user has `team` role
-- Shows the same tabs as TeamDashboard: Payments, Students, Add Student
-- Reuses the existing PaymentsTab, StudentsTab, AddStudentTab components
-
-**5. Update `src/App.tsx`**
-- Add route `/employee-dashboard` pointing to EmployeeDashboard
-- Keep `/team-dashboard` as alias or redirect
-
-**6. Create `supabase/functions/invite-employee/index.ts`**
-- Edge function that:
-  - Verifies caller is admin (checks JWT + `user_roles`)
-  - Creates auth user with `supabase.auth.admin.createUser({ email, password, email_confirm: true })`
-  - Inserts `team` role into `user_roles`
-  - Returns success/error
-
-### File Summary
 | File | Action |
 |------|--------|
-| `supabase/functions/invite-employee/index.ts` | Create |
-| `src/pages/Admin.tsx` | Rewrite login + add Employees tab |
-| `src/pages/EmployeeDashboard.tsx` | Create (team role gated dashboard) |
-| `src/App.tsx` | Add employee-dashboard route |
+| `src/pages/Admin.tsx` | Major rewrite — reorganize tabs, move student/payment management into the Advanced Course tab, add sub-tab navigation within the course tab, consolidate portfolio editors under one tab with sections |
 
-### Technical Notes
-- The admin user (`karimnouh112@gmail.com`) needs to be created in Supabase Auth and assigned the `admin` role in `user_roles` — this will be done via SQL insert after creating the user through the edge function or dashboard
-- Employee passwords are set directly (no email confirmation needed) using `email_confirm: true` in `createUser`
-- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` which is already configured
+### Technical Details
+
+1. **Portfolio tab**: Render all 4 editors (Projects, Hero, Stats, Courses) vertically with section headers and collapsible `<details>` or accordion-style cards to keep it scannable.
+
+2. **Advanced Course tab**: Use a nested `Tabs` component inside the main tab content area with three sub-tabs: Content, Students, Payments. Reuse the existing `CourseContentEditor`, `StudentsTab`, `AddStudentTab`, and `PaymentsTab` components — just move them inline into Admin.tsx (they're already defined in TeamDashboard, so we'll duplicate the logic or extract shared components).
+
+3. **Students sub-tab enhancements**: Show total count prominently, display emails clearly, include the "Add Student" form inline below the student list rather than as a separate tab.
+
+4. **No database changes needed** — all data sources remain the same.
 
