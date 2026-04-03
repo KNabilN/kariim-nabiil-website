@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Zap, ArrowRight, Play, Users, Globe } from "lucide-react";
+import { Zap, ArrowRight, Youtube, FolderDown } from "lucide-react";
 
 const CourseCTA = () => {
   return (
@@ -13,7 +13,7 @@ const CourseCTA = () => {
       <div className="container mx-auto relative">
         <div className="glass rounded-3xl p-8 md:p-14 text-center max-w-4xl mx-auto border border-primary/20 glow-effect">
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Zap className="w-4 h-4" /> New Premium Course
+            <Zap className="w-4 h-4" /> Free Course — Live Now
           </span>
 
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
@@ -21,25 +21,22 @@ const CourseCTA = () => {
           </h2>
 
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
-            Build production-ready AI automation workflows. From advanced integrations to real-world projects — everything you need to become an n8n expert.
+            A free comprehensive course streaming live on YouTube. Enroll to get exclusive access to course resources, downloadable files, and project templates.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground mb-10">
             <span className="flex items-center gap-2">
-              <Play className="w-4 h-4 text-primary" /> 20+ Video Lessons
+              <Youtube className="w-4 h-4 text-primary" /> Live on YouTube
             </span>
             <span className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" /> 200+ Students
-            </span>
-            <span className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-primary" /> Lifetime Access
+              <FolderDown className="w-4 h-4 text-primary" /> Exclusive Resources
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="bg-gradient-primary text-primary-foreground px-8 group" asChild>
               <Link to="/course/advanced-n8n">
-                Enroll Now
+                Enroll for Resources
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
