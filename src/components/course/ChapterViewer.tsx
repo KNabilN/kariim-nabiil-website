@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 interface Resource {
   id: string;
@@ -33,9 +34,23 @@ function getYouTubeEmbedUrl(url: string): string | null {
   }
 }
 
+function extractStoragePath(fileUrl: string): string | null {
+  // Extract the path after /object/public/course-resources/ or /course-resources/
+  const markers = ["/object/public/course-resources/", "/course-resources/"];
+  for (const marker of markers) {
+    const idx = fileUrl.indexOf(marker);
+    if (idx !== -1) {
+      return decodeURIComponent(fileUrl.substring(idx + marker.length));
+    }
+  }
+  // If no marker found, assume the file_url IS the path
+  return fileUrl;
+}
+
 const ChapterViewer = ({ chapterId, title, description, youtubeUrl }: ChapterViewerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -49,6 +64,29 @@ const ChapterViewer = ({ chapterId, title, description, youtubeUrl }: ChapterVie
     };
     fetchResources();
   }, [chapterId]);
+
+  const handleDownload = async (resource: Resource) => {
+    setDownloading(resource.id);
+    try {
+      const path = extractStoragePath(resource.file_url);
+      if (!path) {
+        toast({ title: "Error", description: "Invalid file path", variant: "destructive" });
+        return;
+      }
+      const { data, error } = await supabase.storage
+        .from("course-resources")
+        .createSignedUrl(path, 3600);
+      if (error || !data?.signedUrl) {
+        toast({ title: "Download failed", description: error?.message || "Could not generate download link", variant: "destructive" });
+        return;
+      }
+      window.open(data.signedUrl, "_blank");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const embedUrl = youtubeUrl ? getYouTubeEmbedUrl(youtubeUrl) : null;
 
@@ -80,17 +118,20 @@ const ChapterViewer = ({ chapterId, title, description, youtubeUrl }: ChapterVie
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Resources</h3>
           {resources.map((r) => (
-            <a
+            <button
               key={r.id}
-              href={r.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-colors"
+              onClick={() => handleDownload(r)}
+              disabled={downloading === r.id}
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-colors w-full text-left"
             >
               <FileText className="w-5 h-5 text-primary shrink-0" />
               <span className="text-sm font-medium flex-1">{r.title}</span>
-              <Download className="w-4 h-4 text-muted-foreground" />
-            </a>
+              {downloading === r.id ? (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              ) : (
+                <Download className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
           ))}
         </div>
       )}
