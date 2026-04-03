@@ -11,56 +11,113 @@ import {
   defaultHeroContent, defaultStats, defaultCourses,
   type HeroContent, type StatItem, type CourseItem,
 } from "@/data/siteContent";
-import { LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload } from "lucide-react";
+import { LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const CREDENTIALS = { username: "karimnouh112", password: "admin112" };
-
 const Admin = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("admin_auth") === "true");
-  const [username, setUsername] = useState("");
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const { projects, saveProjects } = useProjects();
   const { data: hero, save: saveHero } = useHeroContent();
   const { data: stats, save: saveStats } = useStats();
   const { data: courses, save: saveCourses } = useCourses();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setLoading(false);
+        setAuthorized(false);
+        setAuthChecked(false);
+      }
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      if (!data.session) setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    const checkRole = async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin");
+      setAuthorized((data && data.length > 0) || false);
+      setAuthChecked(true);
+      setLoading(false);
+    };
+    checkRole();
+  }, [session]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === CREDENTIALS.username && password === CREDENTIALS.password) {
-      sessionStorage.setItem("admin_auth", "true");
-      setIsLoggedIn(true);
-      setLoginError("");
-    } else {
-      setLoginError("Invalid credentials");
-    }
+    setLoginLoading(true);
+    setLoginError("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setLoginError(error.message);
+    setLoginLoading(false);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin_auth");
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setAuthorized(false);
+    setAuthChecked(false);
   };
 
-  if (!isLoggedIn) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="w-full max-w-md glass rounded-2xl p-8">
           <h1 className="text-2xl font-bold mb-2 text-center">Admin Login</h1>
-          <p className="text-muted-foreground text-center text-sm mb-8">Enter your credentials to continue</p>
+          <p className="text-muted-foreground text-center text-sm mb-8">Sign in with your admin account</p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} className="mt-1" />
+              <Label htmlFor="admin-email">Email</Label>
+              <Input id="admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
+              <Label htmlFor="admin-password">Password</Label>
+              <Input id="admin-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1" />
             </div>
             {loginError && <p className="text-destructive text-sm">{loginError}</p>}
-            <Button type="submit" className="w-full">Login</Button>
+            <Button type="submit" className="w-full" disabled={loginLoading}>
+              {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Sign In
+            </Button>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (authChecked && !authorized) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-md glass rounded-2xl p-8 text-center">
+          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground text-sm mb-6">You don't have admin privileges.</p>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" /> Sign Out
+          </Button>
         </div>
       </div>
     );
@@ -77,43 +134,151 @@ const Admin = () => {
 
       <div className="container mx-auto px-6 py-8">
         <Tabs defaultValue="projects">
-          <TabsList className="mb-8">
+          <TabsList className="mb-8 flex-wrap">
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="stats">Stats</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="course-content">Course Content</TabsTrigger>
+            <TabsTrigger value="employees"><Users className="w-4 h-4 mr-1" /> Employees</TabsTrigger>
           </TabsList>
 
-          {/* PROJECTS TAB */}
           <TabsContent value="projects">
             <ProjectsEditor projects={projects} onSave={saveProjects} />
           </TabsContent>
-
-          {/* HERO TAB */}
           <TabsContent value="hero">
             <HeroEditor hero={hero} onSave={saveHero} />
           </TabsContent>
-
-          {/* STATS TAB */}
           <TabsContent value="stats">
             <StatsEditor stats={stats} onSave={saveStats} />
           </TabsContent>
-
-          {/* COURSES TAB */}
           <TabsContent value="courses">
             <CoursesEditor courses={courses} onSave={saveCourses} />
           </TabsContent>
-
-          {/* COURSE CONTENT TAB */}
           <TabsContent value="course-content">
             <CourseContentEditor />
+          </TabsContent>
+          <TabsContent value="employees">
+            <EmployeesTab session={session} />
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 };
+
+// ─── Employees Tab ──────────────────────────────────────────────
+function EmployeesTab({ session }: { session: any }) {
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("user_roles").select("*").eq("role", "team");
+    setEmployees(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchEmployees(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError("");
+    setAddSuccess(false);
+
+    const { data, error } = await supabase.functions.invoke("invite-employee", {
+      body: { name, email, password },
+    });
+
+    if (error || data?.error) {
+      setAddError(data?.error || error?.message || "Failed to add employee");
+    } else {
+      setAddSuccess(true);
+      setName("");
+      setEmail("");
+      setPassword("");
+      fetchEmployees();
+      setTimeout(() => setAddSuccess(false), 3000);
+    }
+    setAddLoading(false);
+  };
+
+  const handleDelete = async (userId: string) => {
+    setDeleteLoading(userId);
+    await supabase.functions.invoke("invite-employee", {
+      body: { action: "delete", userId },
+    });
+    setDeleteLoading(null);
+    fetchEmployees();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="space-y-8">
+      {/* Add Employee Form */}
+      <div className="max-w-md">
+        <h2 className="text-lg font-bold mb-4">Add Employee</h2>
+        <form onSubmit={handleAdd} className="space-y-4">
+          <div>
+            <Label>Full Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" placeholder="Employee name" />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="employee@example.com" />
+          </div>
+          <div>
+            <Label>Password</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1" placeholder="Min 6 characters" minLength={6} />
+          </div>
+          {addError && <p className="text-destructive text-sm">{addError}</p>}
+          {addSuccess && <p className="text-green-500 text-sm">Employee added successfully!</p>}
+          <Button type="submit" disabled={addLoading}>
+            {addLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Plus className="w-4 h-4 mr-1" /> Add Employee
+          </Button>
+        </form>
+      </div>
+
+      {/* Employee List */}
+      <div>
+        <h2 className="text-lg font-bold mb-4">Team Members ({employees.length})</h2>
+        {employees.length === 0 ? (
+          <p className="text-muted-foreground">No employees added yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {employees.map((emp) => (
+              <div key={emp.id} className="glass rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-sm">{emp.user_id}</p>
+                  <p className="text-xs text-muted-foreground">Role: {emp.role}</p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(emp.user_id)}
+                  disabled={deleteLoading === emp.user_id}
+                >
+                  {deleteLoading === emp.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Project Editor ──────────────────────────────────────────────
 function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p: Project[]) => void }) {
@@ -212,7 +377,6 @@ function ProjectsEditor({ projects, onSave }: { projects: Project[]; onSave: (p:
                 <Label>Results</Label>
                 <Textarea value={project.results} onChange={(e) => updateField(project.id, "results", e.target.value)} className="mt-1" />
               </div>
-              {/* Images */}
               <div className="md:col-span-2">
                 <Label>Images</Label>
                 <div className="mt-1 space-y-2">
@@ -371,7 +535,6 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
   );
 }
 
-
 // ─── Course Content Editor ──────────────────────────────────────
 function CourseContentEditor() {
   const [chapters, setChapters] = useState<any[]>([]);
@@ -425,7 +588,6 @@ function CourseContentEditor() {
         <h2 className="text-lg font-bold">Course Chapters ({chapters.length})</h2>
       </div>
 
-      {/* Add new chapter */}
       <div className="glass rounded-xl p-6 space-y-3">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Add New Chapter</h3>
         <div className="grid gap-3 md:grid-cols-2">
@@ -439,7 +601,6 @@ function CourseContentEditor() {
         </Button>
       </div>
 
-      {/* Existing chapters */}
       {chapters.map((ch) => (
         <div key={ch.id} className="glass rounded-xl p-6 space-y-3">
           <div className="flex items-center justify-between">
