@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Play, BookOpen } from "lucide-react";
 import { useCourses } from "@/data/siteContent";
+import { Link } from "react-router-dom";
+import { useCourses } from "@/data/siteContent";
 
 const Courses = () => {
   const { data: courses } = useCourses();
