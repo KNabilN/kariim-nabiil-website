@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Play, BookOpen } from "lucide-react";
 import { useCourses } from "@/data/siteContent";
+import { Link } from "react-router-dom";
 
 const Courses = () => {
   const { data: courses } = useCourses();
@@ -53,13 +54,23 @@ const Courses = () => {
               </div>
 
               <div className="px-8 pb-8">
-                <Button variant="outline" className="w-full group/btn" asChild>
-                  <a href={course.link} target="_blank" rel="noopener noreferrer">
-                    <Play className="w-4 h-4" />
-                    {course.isFree ? "Watch Free" : "Enroll Now"}
-                    <ExternalLink className="w-4 h-4 opacity-0 -ml-2 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all" />
-                  </a>
-                </Button>
+                {course.title.toLowerCase().includes("n8n") && !course.isFree ? (
+                  <Button variant="outline" className="w-full group/btn" asChild>
+                    <Link to="/course/advanced-n8n">
+                      <Play className="w-4 h-4" />
+                      Enroll Now
+                      <ExternalLink className="w-4 h-4 opacity-0 -ml-2 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full group/btn" asChild>
+                    <a href={course.link} target="_blank" rel="noopener noreferrer">
+                      <Play className="w-4 h-4" />
+                      {course.isFree ? "Watch Free" : "Enroll Now"}
+                      <ExternalLink className="w-4 h-4 opacity-0 -ml-2 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all" />
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
           ))}

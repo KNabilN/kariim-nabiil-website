@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,8 @@ import {
   defaultHeroContent, defaultStats, defaultCourses,
   type HeroContent, type StatItem, type CourseItem,
 } from "@/data/siteContent";
-import { LogOut, Plus, Trash2, Save, RotateCcw } from "lucide-react";
+import { LogOut, Plus, Trash2, Save, RotateCcw, Loader2, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const CREDENTIALS = { username: "karimnouh112", password: "admin112" };
 
@@ -81,6 +82,7 @@ const Admin = () => {
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="stats">Stats</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
+            <TabsTrigger value="course-content">Course Content</TabsTrigger>
           </TabsList>
 
           {/* PROJECTS TAB */}
@@ -101,6 +103,11 @@ const Admin = () => {
           {/* COURSES TAB */}
           <TabsContent value="courses">
             <CoursesEditor courses={courses} onSave={saveCourses} />
+          </TabsContent>
+
+          {/* COURSE CONTENT TAB */}
+          <TabsContent value="course-content">
+            <CourseContentEditor />
           </TabsContent>
         </Tabs>
       </div>
@@ -360,6 +367,179 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+
+// ─── Course Content Editor ──────────────────────────────────────
+function CourseContentEditor() {
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+
+  const fetchChapters = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("course_chapters").select("*").order("order_index");
+    setChapters(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchChapters(); }, []);
+
+  const addChapter = async () => {
+    setSaving(true);
+    await supabase.from("course_chapters").insert({
+      title: newTitle || "New Chapter",
+      description: newDesc || null,
+      youtube_url: newUrl || null,
+      order_index: chapters.length,
+      is_published: false,
+    });
+    setNewTitle("");
+    setNewDesc("");
+    setNewUrl("");
+    setSaving(false);
+    fetchChapters();
+  };
+
+  const updateChapter = async (id: string, updates: Record<string, any>) => {
+    await supabase.from("course_chapters").update(updates).eq("id", id);
+    fetchChapters();
+  };
+
+  const deleteChapter = async (id: string) => {
+    await supabase.from("course_chapters").delete().eq("id", id);
+    fetchChapters();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Course Chapters ({chapters.length})</h2>
+      </div>
+
+      {/* Add new chapter */}
+      <div className="glass rounded-xl p-6 space-y-3">
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Add New Chapter</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div><Label>Title</Label><Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="mt-1" placeholder="Chapter title" /></div>
+          <div><Label>YouTube URL</Label><Input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} className="mt-1" placeholder="https://youtube.com/watch?v=..." /></div>
+          <div className="md:col-span-2"><Label>Description</Label><Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="mt-1" placeholder="Optional description" /></div>
+        </div>
+        <Button onClick={addChapter} disabled={saving}>
+          {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          <Plus className="w-4 h-4 mr-1" /> Add Chapter
+        </Button>
+      </div>
+
+      {/* Existing chapters */}
+      {chapters.map((ch) => (
+        <div key={ch.id} className="glass rounded-xl p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3
+              className="font-semibold cursor-pointer hover:text-primary transition-colors"
+              onClick={() => setEditingId(editingId === ch.id ? null : ch.id)}
+            >
+              {ch.title}
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updateChapter(ch.id, { is_published: !ch.is_published })}
+              >
+                {ch.is_published ? "Unpublish" : "Publish"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => deleteChapter(ch.id)}>
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${ch.is_published ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"}`}>
+              {ch.is_published ? "Published" : "Draft"}
+            </span>
+            <span>Order: {ch.order_index}</span>
+          </div>
+
+          {editingId === ch.id && (
+            <div className="grid gap-3 md:grid-cols-2 pt-2">
+              <div><Label>Title</Label><Input defaultValue={ch.title} onBlur={(e) => updateChapter(ch.id, { title: e.target.value })} className="mt-1" /></div>
+              <div><Label>YouTube URL</Label><Input defaultValue={ch.youtube_url || ""} onBlur={(e) => updateChapter(ch.id, { youtube_url: e.target.value || null })} className="mt-1" /></div>
+              <div className="md:col-span-2"><Label>Description</Label><Textarea defaultValue={ch.description || ""} onBlur={(e) => updateChapter(ch.id, { description: e.target.value || null })} className="mt-1" /></div>
+              <div><Label>Order Index</Label><Input type="number" defaultValue={ch.order_index} onBlur={(e) => updateChapter(ch.id, { order_index: parseInt(e.target.value) || 0 })} className="mt-1" /></div>
+              <ChapterResourcesEditor chapterId={ch.id} />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Chapter Resources Editor ──────────────────────────────────────
+function ChapterResourcesEditor({ chapterId }: { chapterId: string }) {
+  const [resources, setResources] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const fetchResources = async () => {
+    const { data } = await supabase.from("chapter_resources").select("*").eq("chapter_id", chapterId);
+    setResources(data || []);
+  };
+
+  useEffect(() => { fetchResources(); }, [chapterId]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+
+    const fileName = `${chapterId}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from("course-resources").upload(fileName, file);
+    
+    if (!error) {
+      const { data: urlData } = supabase.storage.from("course-resources").getPublicUrl(fileName);
+      await supabase.from("chapter_resources").insert({
+        chapter_id: chapterId,
+        title: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type,
+        file_size: file.size,
+      });
+      fetchResources();
+    }
+    setUploading(false);
+  };
+
+  const deleteResource = async (id: string) => {
+    await supabase.from("chapter_resources").delete().eq("id", id);
+    fetchResources();
+  };
+
+  return (
+    <div className="md:col-span-2 space-y-2">
+      <Label>Resources</Label>
+      {resources.map((r) => (
+        <div key={r.id} className="flex items-center justify-between bg-secondary/30 rounded-lg px-3 py-2 text-sm">
+          <span>{r.title}</span>
+          <Button variant="ghost" size="sm" onClick={() => deleteResource(r.id)}>
+            <Trash2 className="w-3 h-3 text-destructive" />
+          </Button>
+        </div>
+      ))}
+      <label className="flex items-center gap-2 cursor-pointer text-primary text-sm hover:underline">
+        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+        {uploading ? "Uploading..." : "Upload Resource"}
+        <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+      </label>
     </div>
   );
 }
