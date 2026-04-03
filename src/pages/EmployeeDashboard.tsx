@@ -144,6 +144,14 @@ function PaymentsTab({ userId }: { userId: string }) {
   }, [payments, filterCourse, dateFrom, dateTo]);
 
   const approvedPayments = useMemo(() => filteredPayments.filter(p => p.status === "approved"), [filteredPayments]);
+  const revenueByCurrency = useMemo(() => {
+    const map: Record<string, number> = {};
+    approvedPayments.forEach(p => {
+      const cur = p.currency || "EGP";
+      map[cur] = (map[cur] || 0) + (p.amount || 0);
+    });
+    return map;
+  }, [approvedPayments]);
   const totalRevenue = useMemo(() => approvedPayments.reduce((sum, p) => sum + (p.amount || 0), 0), [approvedPayments]);
   const avgPayment = approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0;
 
