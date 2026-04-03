@@ -221,20 +221,89 @@ function PaymentsTab({ userId }: { userId: string }) {
 
 function StudentsTab() {
   const [students, setStudents] = useState<any[]>([]);
+  const [paidCourses, setPaidCourses] = useState<any[]>([]);
+  const [accessMap, setAccessMap] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editCourses, setEditCourses] = useState<string[]>([]);
+  const [saveLoading, setSaveLoading] = useState(false);
 
-  const fetchStudents = async () => {
+  const fetchAll = async () => {
     setLoading(true);
-    const { data } = await supabase.from("course_students").select("*").order("created_at", { ascending: false });
-    setStudents(data || []);
+    const [{ data: studentsData }, { data: coursesData }, { data: accessData }] = await Promise.all([
+      supabase.from("course_students").select("*").order("created_at", { ascending: false }),
+      supabase.from("paid_courses").select("*"),
+      supabase.from("course_student_access").select("*"),
+    ]);
+    setStudents(studentsData || []);
+    setPaidCourses(coursesData || []);
+    const map: Record<string, any[]> = {};
+    (accessData || []).forEach((a) => {
+      if (!map[a.student_id]) map[a.student_id] = [];
+      map[a.student_id].push(a);
+    });
+    setAccessMap(map);
     setLoading(false);
   };
 
-  useEffect(() => { fetchStudents(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const toggleActive = async (id: string, current: boolean) => {
     await supabase.from("course_students").update({ is_active: !current }).eq("id", id);
-    fetchStudents();
+    fetchAll();
+  };
+
+  const startEdit = (s: any) => {
+    setEditingId(s.id);
+    setEditName(s.full_name);
+    setEditEmail(s.email);
+    setEditCourses((accessMap[s.id] || []).map((a: any) => a.course_id));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSave = async (id: string) => {
+    setSaveLoading(true);
+
+    // Update student info
+    await supabase.from("course_students")
+      .update({ full_name: editName, email: editEmail.trim().toLowerCase() })
+      .eq("id", id);
+
+    // Sync course access: remove old, add new
+    const currentAccess = (accessMap[id] || []).map((a: any) => a.course_id);
+    const toRemove = currentAccess.filter((cid: string) => !editCourses.includes(cid));
+    const toAdd = editCourses.filter((cid) => !currentAccess.includes(cid));
+
+    for (const cid of toRemove) {
+      await supabase.from("course_student_access").delete().eq("student_id", id).eq("course_id", cid);
+    }
+    for (const cid of toAdd) {
+      await supabase.from("course_student_access").upsert(
+        { student_id: id, course_id: cid },
+        { onConflict: "student_id,course_id" }
+      );
+    }
+
+    setSaveLoading(false);
+    setEditingId(null);
+    fetchAll();
+  };
+
+  const toggleCourseAccess = (courseId: string) => {
+    setEditCourses((prev) =>
+      prev.includes(courseId) ? prev.filter((c) => c !== courseId) : [...prev, courseId]
+    );
+  };
+
+  const getCourseNames = (studentId: string) => {
+    return (accessMap[studentId] || [])
+      .map((a: any) => paidCourses.find((c) => c.id === a.course_id)?.title)
+      .filter(Boolean);
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
@@ -243,18 +312,72 @@ function StudentsTab() {
     <div className="space-y-4">
       <h2 className="text-lg font-bold">Students ({students.length})</h2>
       {students.map((s) => (
-        <div key={s.id} className="glass rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="font-semibold">{s.full_name}</p>
-            <p className="text-sm text-muted-foreground">{s.email} · Added via {s.added_by}</p>
-          </div>
-          <Button
-            variant={s.is_active ? "destructive" : "default"}
-            size="sm"
-            onClick={() => toggleActive(s.id, s.is_active)}
-          >
-            {s.is_active ? <><UserMinus className="w-4 h-4 mr-1" /> Deactivate</> : "Activate"}
-          </Button>
+        <div key={s.id} className="glass rounded-xl p-4 space-y-3">
+          {editingId === s.id ? (
+            <>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-xs">Full Name</Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" />
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Course Access</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {paidCourses.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => toggleCourseAccess(c.id)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        editCourses.includes(c.id)
+                          ? "bg-primary/20 border-primary text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      <BookOpen className="w-3 h-3 inline mr-1" />{c.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleSave(s.id)} disabled={saveLoading}>
+                  {saveLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />} Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={cancelEdit}>Cancel</Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">{s.full_name}</p>
+                <p className="text-sm text-muted-foreground">{s.email} · Added via {s.added_by}</p>
+                {getCourseNames(s.id).length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {getCourseNames(s.id).map((name, i) => (
+                      <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">{name}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => startEdit(s)}>
+                  <Pencil className="w-4 h-4 mr-1" /> Edit
+                </Button>
+                <Button
+                  variant={s.is_active ? "destructive" : "default"}
+                  size="sm"
+                  onClick={() => toggleActive(s.id, s.is_active)}
+                >
+                  {s.is_active ? <><UserMinus className="w-4 h-4 mr-1" /> Deactivate</> : "Activate"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
