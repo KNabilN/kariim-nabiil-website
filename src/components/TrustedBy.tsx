@@ -8,14 +8,14 @@ import scsLogo from "@/assets/logos/scs.png";
 import saharaCompleteLogo from "@/assets/logos/sahara-complete.png";
 
 const logos = [
-  { src: trigzLogo, alt: "Trigz", invert: false },
+  { src: trigzLogo, alt: "Trigz", invertDark: false },
   { src: pegasusLogo, alt: "Pegasus", invertDark: true },
   { src: provinLogo, alt: "Provin", invertDark: true },
-  { src: maniaLogo, alt: "Mania", invert: false },
-  { src: aiLogo, alt: "Zaher AI", invert: false },
-  { src: mantouqLogo, alt: "Mantouq", invert: false },
-  { src: scsLogo, alt: "SCS - Sahara Chemical Solutions", invert: false },
-  { src: saharaCompleteLogo, alt: "Sahara Complete", invert: false },
+  { src: maniaLogo, alt: "Mania", invertDark: false },
+  { src: aiLogo, alt: "Zaher AI", invertDark: false },
+  { src: mantouqLogo, alt: "Mantouq", invertDark: false },
+  { src: scsLogo, alt: "SCS - Sahara Chemical Solutions", invertDark: false },
+  { src: saharaCompleteLogo, alt: "Sahara Complete", invertDark: false },
 ];
 
 const TrustedBy = () => {
