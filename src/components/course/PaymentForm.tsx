@@ -6,9 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
 const PAYMENT_METHODS = [
-  { value: "paypal", label: "PayPal", details: "karim.nabil@paypal.com" },
-  { value: "instapay", label: "InstaPay", details: "karim.nabil@instapay" },
-  { value: "vodafone_cash", label: "Vodafone Cash", details: "01012345678" },
+  { value: "paypal", label: "PayPal", details: "karim.nabil@paypal.com", link: "https://paypal.me/kariimnabiil" },
+  { value: "instapay", label: "InstaPay", details: "karim.nabil@instapay", link: "https://instapay.example.com" },
+  { value: "vodafone_cash", label: "Vodafone Cash", details: "01012345678", link: null },
 ] as const;
 
 const PaymentForm = () => {
