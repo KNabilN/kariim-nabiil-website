@@ -97,7 +97,12 @@ const PaymentForm = () => {
             <button
               key={m.value}
               type="button"
-              onClick={() => setPaymentMethod(m.value)}
+              onClick={() => {
+                setPaymentMethod(m.value);
+                if (m.link) {
+                  window.open(m.link, "_blank", "noopener,noreferrer");
+                }
+              }}
               className={`p-4 rounded-xl border text-left transition-all ${
                 paymentMethod === m.value
                   ? "border-primary bg-primary/10"
@@ -105,7 +110,7 @@ const PaymentForm = () => {
               }`}
             >
               <span className="font-semibold text-sm">{m.label}</span>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">{m.details}</p>
+              <p className="text-xs text-muted-foreground mt-1 font-mono underline">{m.details}</p>
             </button>
           ))}
         </div>
