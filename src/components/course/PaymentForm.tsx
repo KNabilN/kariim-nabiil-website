@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
 const PAYMENT_METHODS = [
-  { value: "paypal", label: "PayPal", details: "karim.nabil@paypal.com", link: "https://paypal.me/kariimnabiil" },
+  { value: "paypal", label: "PayPal", details: "paypal.me/kariimnabiil", link: "https://paypal.me/kariimnabiil" },
   { value: "vodafone_cash", label: "Vodafone Cash", details: "01144200113", link: null },
 ] as const;
 
