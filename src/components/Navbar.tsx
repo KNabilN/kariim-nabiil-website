@@ -15,6 +15,9 @@ const navLinks = [{
 }, {
   label: "Courses",
   href: "#courses"
+}, {
+  label: "Contact",
+  href: "#contact"
 }];
 
 const Navbar = () => {
@@ -54,7 +57,7 @@ const Navbar = () => {
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
           <Button variant="default" size="sm" asChild>
-            <a href="#contact">Contact</a>
+            <a href="/course/learn">Login</a>
           </Button>
         </div>
 
@@ -83,8 +86,8 @@ const Navbar = () => {
               </a>
             ))}
             <Button variant="default" className="mt-4" asChild>
-              <a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>
-                Contact
+              <a href="/course/learn" onClick={() => setIsMobileMenuOpen(false)}>
+                Login
               </a>
             </Button>
           </div>
