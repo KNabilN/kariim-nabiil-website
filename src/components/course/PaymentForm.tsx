@@ -7,8 +7,7 @@ import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
 const PAYMENT_METHODS = [
   { value: "paypal", label: "PayPal", details: "karim.nabil@paypal.com", link: "https://paypal.me/kariimnabiil" },
-  { value: "instapay", label: "InstaPay", details: "karim.nabil@instapay", link: "https://instapay.example.com" },
-  { value: "vodafone_cash", label: "Vodafone Cash", details: "01012345678", link: null },
+  { value: "vodafone_cash", label: "Vodafone Cash", details: "01144200113", link: null },
 ] as const;
 
 const PaymentForm = () => {
@@ -33,26 +32,20 @@ const PaymentForm = () => {
     try {
       const fileExt = screenshot.name.split(".").pop();
       const fileName = `${Date.now()}_${crypto.randomUUID()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("payment-screenshots")
-        .upload(fileName, screenshot);
+
+      const { error: uploadError } = await supabase.storage.from("payment-screenshots").upload(fileName, screenshot);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("payment-screenshots")
-        .getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from("payment-screenshots").getPublicUrl(fileName);
 
-      const { error: insertError } = await supabase
-        .from("payment_submissions")
-        .insert({
-          full_name: fullName,
-          email,
-          phone,
-          payment_method: paymentMethod as any,
-          screenshot_url: urlData.publicUrl,
-        });
+      const { error: insertError } = await supabase.from("payment_submissions").insert({
+        full_name: fullName,
+        email,
+        phone,
+        payment_method: paymentMethod as any,
+        screenshot_url: urlData.publicUrl,
+      });
 
       if (insertError) throw insertError;
       setSubmitted(true);
@@ -79,15 +72,37 @@ const PaymentForm = () => {
     <form onSubmit={handleSubmit} className="space-y-6 max-w-lg mx-auto">
       <div>
         <Label htmlFor="fullName">Full Name</Label>
-        <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="mt-1" placeholder="Your full name" />
+        <Input
+          id="fullName"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+          className="mt-1"
+          placeholder="Your full name"
+        />
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="your@email.com" />
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="mt-1"
+          placeholder="your@email.com"
+        />
       </div>
       <div>
         <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required className="mt-1" placeholder="+20 xxx xxx xxxx" />
+        <Input
+          id="phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+          className="mt-1"
+          placeholder="+20 xxx xxx xxxx"
+        />
       </div>
 
       <div>
@@ -104,9 +119,7 @@ const PaymentForm = () => {
                 }
               }}
               className={`p-4 rounded-xl border text-left transition-all ${
-                paymentMethod === m.value
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50"
+                paymentMethod === m.value ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
               }`}
             >
               <span className="font-semibold text-sm">{m.label}</span>
@@ -123,7 +136,12 @@ const PaymentForm = () => {
           <span className="text-sm text-muted-foreground">
             {screenshot ? screenshot.name : "Click to upload screenshot"}
           </span>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => setScreenshot(e.target.files?.[0] || null)} />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+          />
         </label>
       </div>
 
