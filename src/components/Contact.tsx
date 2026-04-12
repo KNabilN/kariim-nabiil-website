@@ -19,8 +19,8 @@ const Contact = () => {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button variant="hero" size="lg" asChild>
-              <a href="mailto:karimnouh112@gmail.com">
-                <Mail className="w-5 h-5" />
+              <a href="https://api.whatsapp.com/send/?phone=97451060697&text&type=phone_number&app_absent=0" target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="w-5 h-5" />
                 Get in Touch
                 <ArrowRight className="w-4 h-4" />
               </a>
