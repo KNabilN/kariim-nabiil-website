@@ -923,7 +923,7 @@ function CourseContentEditor() {
     await supabase.from("course_chapters").insert({ title: newTitle || "New Chapter", description: newDesc || null, youtube_url: newUrl || null, order_index: filteredChapters.length, is_published: false, course_id: selectedCourseId });
     setNewTitle(""); setNewDesc(""); setNewUrl(""); setSaving(false); fetchAll();
   };
-  const updateChapter = async (id: string, updates: Record<string, any>) => { await supabase.from("course_chapters").update(updates).eq("id", id); fetchAll(); };
+  const updateChapter = async (id: string, updates: Record<string, any>) => { await supabase.from("course_chapters").update(updates as any).eq("id", id); fetchAll(); };
   const deleteChapter = async (id: string) => { await supabase.from("course_chapters").delete().eq("id", id); fetchAll(); };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
