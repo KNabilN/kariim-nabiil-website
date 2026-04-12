@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceFingerprint, getDeviceName } from "@/lib/deviceFingerprint";
-import { Loader2, ShieldAlert, Mail } from "lucide-react";
+import { Loader2, ShieldAlert, Mail, ArrowLeft } from "lucide-react";
 
 interface DeviceGateProps {
   onAccess: (studentId: string) => void;
@@ -78,6 +79,10 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Homepage
+      </Link>
       <div className="w-full max-w-md glass rounded-2xl p-8 space-y-6">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
