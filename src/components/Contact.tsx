@@ -39,13 +39,11 @@ const Contact = () => {
               <Linkedin className="w-5 h-5" />
             </a>
             <a
-              href="https://api.whatsapp.com/send/?phone=97451060697&text&type=phone_number&app_absent=0"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:karimnouh112@gmail.com"
               className="w-12 h-12 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-300"
-              aria-label="WhatsApp"
+              aria-label="Email"
             >
-              <MessageCircle className="w-5 h-5" />
+              <Mail className="w-5 h-5" />
             </a>
             <a
               href="mailto:karimnouh112@gmail.com"
