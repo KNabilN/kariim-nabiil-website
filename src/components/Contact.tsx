@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Mail, Linkedin, ArrowRight, MessageCircle } from "lucide-react";
+import { Mail, Linkedin, ArrowRight, MessageCircle, Phone } from "lucide-react";
 
 const Contact = () => {
   return (
