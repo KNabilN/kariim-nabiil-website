@@ -86,8 +86,8 @@ const Navbar = () => {
               </a>
             ))}
             <Button variant="default" className="mt-4" asChild>
-              <a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>
-                Contact
+              <a href="/course/learn" onClick={() => setIsMobileMenuOpen(false)}>
+                Login
               </a>
             </Button>
           </div>
