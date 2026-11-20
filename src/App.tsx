@@ -4,7 +4,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/i18n/LanguageProvider";
+import SiteLayout from "@/components/layout/SiteLayout";
 import Index from "./pages/Index";
+import About from "./pages/About";
+import Courses from "./pages/Courses";
+import CourseAgentic from "./pages/CourseAgentic";
+import ProjectsPage from "./pages/ProjectsPage";
+import Contact from "./pages/Contact";
+import Enroll from "./pages/Enroll";
+import LeadThanks from "./pages/LeadThanks";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import CourseLanding from "./pages/CourseLanding";
@@ -16,24 +25,35 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <ThemeProvider>
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/course/advanced-n8n" element={<CourseLanding />} />
-          <Route path="/course/learn/:courseId?" element={<CourseLearn />} />
-          <Route path="/team-dashboard" element={<TeamDashboard />} />
-          <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<SiteLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/agentic-ai-engineering" element={<CourseAgentic />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/enroll" element={<Enroll />} />
+                <Route path="/thanks" element={<LeadThanks />} />
+              </Route>
+
+              <Route path="/admin/*" element={<Admin />} />
+              <Route path="/course/advanced-n8n" element={<CourseLanding />} />
+              <Route path="/course/learn/:courseId?" element={<CourseLearn />} />
+              <Route path="/team-dashboard" element={<TeamDashboard />} />
+              <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   </ThemeProvider>
 );
 

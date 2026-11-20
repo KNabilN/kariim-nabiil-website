@@ -2,89 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 20% 10%;
+    /* White Udemy-like marketplace */
+    --background: 210 20% 98%; /* #F7F9FA */
+    --foreground: 222 47% 11%; /* near navy text */
 
-    --card: 220 15% 97%;
-    --card-foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 185 85% 40%;
+    --primary: 217 91% 60%; /* Electric Blue #2563EB */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 93%;
-    --secondary-foreground: 220 20% 20%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 15% 95%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 16% 40%;
 
-    --accent: 185 85% 40%;
+    --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 185 85% 40%;
+    --success: 142 71% 35%;
+    --warning: 38 92% 45%;
 
-    --radius: 0.75rem;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 217 91% 60%;
 
-    /* Custom design tokens */
-    --glow-primary: 185 85% 40%;
-    --glow-secondary: 200 80% 50%;
-    --gradient-start: 185 85% 40%;
-    --gradient-end: 200 80% 50%;
+    --radius: 0.5rem;
 
-    /* Shadows */
-    --shadow-glow: 0 0 40px hsl(185 85% 50% / 0.15);
-    --shadow-glow-lg: 0 0 80px hsl(185 85% 50% / 0.2);
-  }
+    --navy: 222 47% 11%;
+    --surface: 0 0% 100%;
+    --elevated: 210 20% 96%;
+    --cyan: 189 94% 38%;
+    --amber: 38 92% 45%;
+    --slate: 215 16% 47%;
 
-  .dark {
-    --background: 220 20% 6%;
-    --foreground: 0 0% 98%;
+    --gradient-start: 217 91% 60%;
+    --gradient-end: 199 89% 48%;
+    --glow-primary: 217 91% 60%;
+    --glow-secondary: 199 89% 48%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 220 18% 10%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 185 85% 50%;
-    --primary-foreground: 220 20% 6%;
-
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 55%;
-
-    --accent: 185 85% 50%;
-    --accent-foreground: 220 20% 6%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 185 85% 50%;
-
-    /* Custom design tokens */
-    --glow-primary: 185 85% 50%;
-    --glow-secondary: 200 80% 60%;
-    --gradient-start: 185 85% 50%;
-    --gradient-end: 200 80% 60%;
-
-    /* Shadows */
-    --shadow-glow: 0 0 40px hsl(185 85% 50% / 0.3);
-    --shadow-glow-lg: 0 0 80px hsl(185 85% 50% / 0.4);
+    --shadow-glow: 0 8px 24px hsl(217 91% 60% / 0.18);
+    --shadow-glow-lg: 0 16px 40px hsl(217 91% 60% / 0.2);
+    --shadow-card: 0 2px 8px hsl(222 30% 20% / 0.08);
   }
 }
 
@@ -97,18 +65,24 @@
     scroll-behavior: smooth;
   }
 
+  html[dir="rtl"] body {
+    font-family: "Cairo", system-ui, sans-serif;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Outfit', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: inherit;
     font-weight: 700;
+    letter-spacing: -0.02em;
+    color: hsl(var(--navy));
   }
 
-  code, pre {
-    font-family: 'JetBrains Mono', monospace;
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
@@ -118,36 +92,65 @@
     background-image: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
   }
 
-  .bg-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
   }
 
-  .glow-effect {
-    box-shadow: var(--shadow-glow);
+  .section-shell {
+    @apply relative py-10 md:py-14;
   }
 
-  .glow-effect-lg {
-    box-shadow: var(--shadow-glow-lg);
+  .section-container {
+    @apply container mx-auto max-w-6xl px-4 md:px-6;
   }
 
-  .glass {
-    @apply backdrop-blur-xl border border-border/50;
-    background: hsl(var(--card) / 0.6);
+  .brand-card {
+    @apply relative overflow-hidden rounded-lg border border-border bg-card p-5 transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
   }
 
-  .section-padding {
-    @apply py-20 md:py-32 px-6 md:px-12;
+  .brand-card:hover {
+    box-shadow: 0 8px 24px hsl(222 30% 20% / 0.12);
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.16em] text-primary;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold tracking-tight text-navy md:text-3xl;
+  }
+
+  .udemy-chip {
+    @apply inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary;
+  }
+
+  .udemy-chip-active {
+    @apply border-primary bg-primary/5 text-primary;
+  }
+
+  /* Continuous horizontal slider — cards drift to the right */
+  .presence-marquee {
+    animation: presence-marquee-right 45s linear infinite;
   }
 }
 
-@layer utilities {
-  .animation-delay-200 {
-    animation-delay: 200ms;
+@keyframes presence-marquee-right {
+  from {
+    transform: translateX(-50%);
   }
-  .animation-delay-400 {
-    animation-delay: 400ms;
+  to {
+    transform: translateX(0);
   }
-  .animation-delay-600 {
-    animation-delay: 600ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

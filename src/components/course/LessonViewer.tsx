@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { getVideoEmbedUrl } from "@/lib/videoUrl";
 
 interface Resource {
   id: string;
@@ -16,29 +17,6 @@ interface LessonViewerProps {
   title: string;
   description: string | null;
   videoUrl: string | null;
-}
-
-function getYouTubeEmbedUrl(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-    let videoId = parsed.searchParams.get("v");
-
-    if (host === "youtu.be") {
-      videoId = parsed.pathname.split("/").filter(Boolean)[0] || null;
-    } else if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
-      const segments = parsed.pathname.split("/").filter(Boolean);
-      if (!videoId && ["embed", "shorts", "live"].includes(segments[0] || "")) {
-        videoId = segments[1] || null;
-      }
-    } else {
-      return null;
-    }
-
-    return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : null;
-  } catch {
-    return null;
-  }
 }
 
 function extractStoragePath(fileUrl: string): string | null {
@@ -116,7 +94,7 @@ const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerPr
     }
   };
 
-  const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+  const embedUrl = videoUrl ? getVideoEmbedUrl(videoUrl) : null;
   const externalVideoUrl = videoUrl && !embedUrl ? videoUrl : null;
 
   return (

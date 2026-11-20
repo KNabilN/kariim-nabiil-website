@@ -210,6 +210,36 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          intent: string
+          name: string
+          status: string
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          intent: string
+          name: string
+          status?: string
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          intent?: string
+          name?: string
+          status?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       paid_courses: {
         Row: {
           created_at: string | null
@@ -327,6 +357,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_content: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
