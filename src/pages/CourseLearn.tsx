@@ -3,15 +3,25 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DeviceGate from "@/components/course/DeviceGate";
 import ChapterSidebar from "@/components/course/ChapterSidebar";
-import ChapterViewer from "@/components/course/ChapterViewer";
+import LessonViewer from "@/components/course/LessonViewer";
 import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface Chapter {
   id: string;
   title: string;
   description: string | null;
-  youtube_url: string | null;
+  order_index: number;
+  is_published: boolean;
+}
+
+interface Lesson {
+  id: string;
+  chapter_id: string;
+  title: string;
+  description: string | null;
+  video_url: string | null;
   order_index: number;
   is_published: boolean;
 }
@@ -27,12 +37,13 @@ const CourseLearn = () => {
   const [studentId, setStudentId] = useState<string | null>(null);
   const [courses, setCourses] = useState<CourseAccess[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch enrolled courses
   useEffect(() => {
     if (!studentId) return;
+    let isCurrent = true;
     const fetchCourses = async () => {
       setLoading(true);
       const { data: access } = await supabase
@@ -42,6 +53,7 @@ const CourseLearn = () => {
 
       const courseIds = access?.map((a) => a.course_id) || [];
       if (courseIds.length === 0) {
+        if (!isCurrent) return;
         setCourses([]);
         setLoading(false);
         return;
@@ -52,6 +64,7 @@ const CourseLearn = () => {
         .select("id, title")
         .in("id", courseIds);
 
+      if (!isCurrent) return;
       const mapped = (coursesData || []).map((c) => ({
         course_id: c.id,
         course_title: c.title,
@@ -65,36 +78,78 @@ const CourseLearn = () => {
       setLoading(false);
     };
     fetchCourses();
-  }, [studentId]);
+    return () => {
+      isCurrent = false;
+    };
+  }, [studentId, courseId, navigate]);
 
-  // Fetch chapters for selected course
   useEffect(() => {
-    if (!studentId || !courseId) return;
+    if (!studentId || !courseId || courses.length === 0) return;
+    let isCurrent = true;
+    if (!courses.some((course) => course.course_id === courseId)) {
+      setChapters([]);
+      setLessons([]);
+      setActiveLessonId(null);
+      setLoading(false);
+      return;
+    }
+
     const fetchChapters = async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("course_chapters")
-        .select("*")
+        .select("id, title, description, order_index, is_published")
         .eq("is_published", true)
         .eq("course_id", courseId)
         .order("order_index");
+      if (!isCurrent) return;
+      if (error) {
+        setChapters([]);
+        setLessons([]);
+        setActiveLessonId(null);
+        setLoading(false);
+        return;
+      }
+
       const chaps = (data || []) as Chapter[];
       setChapters(chaps);
-      if (chaps.length > 0) setActiveChapterId(chaps[0].id);
-      else setActiveChapterId(null);
+      if (chaps.length === 0) {
+        setLessons([]);
+        setActiveLessonId(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data: lessonData } = await supabase
+        .from("course_lessons")
+        .select("id, chapter_id, title, description, video_url, order_index, is_published")
+        .in("chapter_id", chaps.map((chapter) => chapter.id))
+        .eq("is_published", true)
+        .order("order_index");
+      if (!isCurrent) return;
+      const courseLessons = (lessonData || []) as Lesson[];
+      setLessons(courseLessons);
+      setActiveLessonId(courseLessons[0]?.id || null);
       setLoading(false);
     };
     fetchChapters();
-  }, [studentId, courseId]);
+    return () => {
+      isCurrent = false;
+    };
+  }, [studentId, courseId, courses]);
 
   if (!studentId) {
     return <DeviceGate onAccess={setStudentId} />;
   }
 
-  const activeChapter = chapters.find((c) => c.id === activeChapterId);
+  const activeLesson = lessons.find((lesson) => lesson.id === activeLessonId);
+  const chaptersWithLessons = chapters.map((chapter) => ({
+    ...chapter,
+    lessons: lessons.filter((lesson) => lesson.chapter_id === chapter.id),
+  }));
   const currentCourse = courses.find((c) => c.course_id === courseId);
+  const hasCourseAccess = !courseId || courses.some((course) => course.course_id === courseId);
 
-  // Course selection screen
   if (!courseId && courses.length > 0) {
     return (
       <div className="min-h-screen bg-background">
@@ -111,16 +166,17 @@ const CourseLearn = () => {
           <p className="text-muted-foreground mb-8">Select a course to start learning</p>
           <div className="grid gap-4">
             {courses.map((c) => (
-              <button
+              <Button
+                variant="ghost"
                 key={c.course_id}
                 onClick={() => navigate(`/course/learn/${c.course_id}`)}
-                className="glass rounded-2xl p-6 text-left hover:bg-secondary/50 transition-colors flex items-center gap-4"
+                className="glass h-auto justify-start gap-4 rounded-xl p-6 text-left"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <BookOpen className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-lg font-semibold">{c.course_title}</span>
-              </button>
+                <span className="min-w-0 whitespace-normal text-lg font-semibold">{c.course_title}</span>
+              </Button>
             ))}
           </div>
         </div>
@@ -150,29 +206,34 @@ const CourseLearn = () => {
         <div className="flex items-center justify-center py-32">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : !courseId && courses.length === 0 ? (
+      ) : (!courseId && courses.length === 0) || !hasCourseAccess ? (
         <div className="text-center py-32 text-muted-foreground">
           <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>You don't have access to any courses yet.</p>
+          <p>You don&apos;t have access to this course yet.</p>
         </div>
       ) : chapters.length === 0 ? (
         <div className="text-center py-32 text-muted-foreground">
           <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No chapters available yet. Check back soon!</p>
         </div>
+      ) : lessons.length === 0 ? (
+        <div className="text-center py-32 text-muted-foreground">
+          <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No lessons have been published yet.</p>
+        </div>
       ) : (
         <div className="container mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
           <ChapterSidebar
-            chapters={chapters}
-            activeChapterId={activeChapterId}
-            onSelect={setActiveChapterId}
+            chapters={chaptersWithLessons}
+            activeLessonId={activeLessonId}
+            onSelect={setActiveLessonId}
           />
-          {activeChapter && (
-            <ChapterViewer
-              chapterId={activeChapter.id}
-              title={activeChapter.title}
-              description={activeChapter.description}
-              youtubeUrl={activeChapter.youtube_url}
+          {activeLesson && (
+            <LessonViewer
+              lessonId={activeLesson.id}
+              title={activeLesson.title}
+              description={activeLesson.description}
+              videoUrl={activeLesson.video_url}
             />
           )}
         </div>

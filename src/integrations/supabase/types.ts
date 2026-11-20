@@ -22,6 +22,7 @@ export type Database = {
           file_type: string | null
           file_url: string
           id: string
+          lesson_id: string | null
           title: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           file_type?: string | null
           file_url: string
           id?: string
+          lesson_id?: string | null
           title: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           file_type?: string | null
           file_url?: string
           id?: string
+          lesson_id?: string | null
           title?: string
         }
         Relationships: [
@@ -48,6 +51,13 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "course_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chapter_resources_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
             referencedColumns: ["id"]
           },
         ]
@@ -89,6 +99,50 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_lessons: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          order_index: number
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "course_chapters"
             referencedColumns: ["id"]
           },
         ]

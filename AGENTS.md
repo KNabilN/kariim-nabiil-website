@@ -1,0 +1,1 @@
+- Course content uses a normalized course → chapter → lesson structure, with resources linked to lessons, so each chapter can hold multiple independently managed videos and files.

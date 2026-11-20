@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 // ─── Main Admin Component ──────────────────────────────────────────
 const Admin = () => {
@@ -888,16 +889,19 @@ function CoursesEditor({ courses, onSave }: { courses: CourseItem[]; onSave: (c:
 // ─── Course Content Editor ──────────────────────────────────────
 function CourseContentEditor() {
   const [chapters, setChapters] = useState<any[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
   const [paidCourses, setPaidCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [courseTitle, setCourseTitle] = useState("");
+  const [coursePrice, setCoursePrice] = useState("");
+  const [courseCurrency, setCourseCurrency] = useState("EGP");
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newUrl, setNewUrl] = useState("");
 
-  const fetchAll = async () => {
+  const fetchAll = async (preferredCourseId?: string) => {
     setLoading(true);
     const [chapRes, coursesRes] = await Promise.all([
       supabase.from("course_chapters").select("*").order("order_index"),
@@ -905,118 +909,339 @@ function CourseContentEditor() {
     ]);
     setChapters(chapRes.data || []);
     setPaidCourses(coursesRes.data || []);
-    if (!selectedCourseId && (coursesRes.data || []).length > 0) {
-      setSelectedCourseId(coursesRes.data![0].id);
+    const chapterIds = (chapRes.data || []).map((chapter) => chapter.id);
+    let lessonRows: any[] = [];
+    if (chapterIds.length > 0) {
+      const { data } = await supabase.from("course_lessons").select("*").in("chapter_id", chapterIds).order("order_index");
+      lessonRows = data || [];
     }
+    setLessons(lessonRows);
+    const currentCourseExists = (coursesRes.data || []).some((course) => course.id === selectedCourseId);
+    if (preferredCourseId) setSelectedCourseId(preferredCourseId);
+    else if (!currentCourseExists && (coursesRes.data || []).length > 0) setSelectedCourseId(coursesRes.data?.[0]?.id || "");
+    else if ((coursesRes.data || []).length === 0) setSelectedCourseId("");
     setLoading(false);
   };
   useEffect(() => { fetchAll(); }, []);
 
+  const createCourse = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!courseTitle.trim()) return;
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("paid_courses")
+      .insert({
+        title: courseTitle.trim(),
+        price: coursePrice ? Number(coursePrice) : 0,
+        currency: courseCurrency,
+      })
+      .select("id")
+      .single();
+    if (error || !data) {
+      toast({ title: "Course could not be created", description: error?.message || "Please try again.", variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+    setCourseTitle("");
+    setCoursePrice("");
+    await fetchAll(data.id);
+    setSaving(false);
+  };
+
   const filteredChapters = useMemo(() => {
-    if (!selectedCourseId) return chapters;
+    if (!selectedCourseId) return [];
     return chapters.filter(ch => ch.course_id === selectedCourseId);
   }, [chapters, selectedCourseId]);
 
   const addChapter = async () => {
-    if (!selectedCourseId) return;
+    if (!selectedCourseId || !newTitle.trim()) return;
     setSaving(true);
-    await supabase.from("course_chapters").insert({ title: newTitle || "New Chapter", description: newDesc || null, youtube_url: newUrl || null, order_index: filteredChapters.length, is_published: false, course_id: selectedCourseId });
-    setNewTitle(""); setNewDesc(""); setNewUrl(""); setSaving(false); fetchAll();
+    const { error } = await supabase.from("course_chapters").insert({
+      title: newTitle.trim(),
+      description: newDesc || null,
+      order_index: filteredChapters.length,
+      is_published: false,
+      course_id: selectedCourseId,
+    });
+    if (error) toast({ title: "Chapter could not be created", description: error.message, variant: "destructive" });
+    else {
+      setNewTitle("");
+      setNewDesc("");
+      await fetchAll();
+    }
+    setSaving(false);
   };
-  const updateChapter = async (id: string, updates: Record<string, any>) => { await supabase.from("course_chapters").update(updates as any).eq("id", id); fetchAll(); };
-  const deleteChapter = async (id: string) => { await supabase.from("course_chapters").delete().eq("id", id); fetchAll(); };
+  const updateChapter = async (id: string, updates: Record<string, any>) => {
+    const { error } = await supabase.from("course_chapters").update(updates as any).eq("id", id);
+    if (error) toast({ title: "Chapter could not be updated", description: error.message, variant: "destructive" });
+    else await fetchAll();
+  };
+  const deleteChapter = async (id: string) => {
+    const { error } = await supabase.from("course_chapters").delete().eq("id", id);
+    if (error) toast({ title: "Chapter could not be deleted", description: error.message, variant: "destructive" });
+    else await fetchAll();
+  };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-bold">Course Chapters ({filteredChapters.length})</h2>
-        <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-          <option value="">All courses</option>
-          {paidCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+      <form onSubmit={createCourse} className="glass grid gap-3 rounded-xl p-5 md:grid-cols-[minmax(0,1fr)_140px_110px_auto] md:items-end">
+        <div>
+          <Label>New course</Label>
+          <Input value={courseTitle} onChange={(event) => setCourseTitle(event.target.value)} className="mt-1" placeholder="Course title" required />
+        </div>
+        <div>
+          <Label>Price</Label>
+          <Input type="number" min="0" step="0.01" value={coursePrice} onChange={(event) => setCoursePrice(event.target.value)} className="mt-1" placeholder="0.00" />
+        </div>
+        <div>
+          <Label>Currency</Label>
+          <select value={courseCurrency} onChange={(event) => setCourseCurrency(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
+          </select>
+        </div>
+        <Button type="submit" disabled={saving || !courseTitle.trim()}>
+          {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />} Create course
+        </Button>
+      </form>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <h2 className="text-lg font-bold">Course structure</h2>
+          <p className="text-sm text-muted-foreground">Organize each course into chapters, lessons, and lesson resources.</p>
+        </div>
+        <select aria-label="Select course" value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)} className="flex h-10 min-w-56 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          {paidCourses.length === 0 ? <option value="">No courses yet</option> : paidCourses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
         </select>
       </div>
 
-      {selectedCourseId && (
-      <div className="glass rounded-xl p-6 space-y-3">
-        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Add New Chapter</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div><Label>Title</Label><Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="mt-1" placeholder="Chapter title" /></div>
-          <div><Label>YouTube URL</Label><Input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} className="mt-1" placeholder="https://youtube.com/watch?v=..." /></div>
-          <div className="md:col-span-2"><Label>Description</Label><Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="mt-1" placeholder="Optional description" /></div>
-        </div>
-        <Button onClick={addChapter} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}<Plus className="w-4 h-4 mr-1" /> Add Chapter</Button>
-      </div>
+      {selectedCourseId ? (
+        <>
+          <form onSubmit={(event) => { event.preventDefault(); void addChapter(); }} className="space-y-3 border-b border-border pb-6">
+            <h3 className="font-semibold">Add chapter</h3>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div><Label>Chapter title</Label><Input value={newTitle} onChange={(event) => setNewTitle(event.target.value)} className="mt-1" placeholder="Chapter title" required /></div>
+              <div><Label>Description</Label><Input value={newDesc} onChange={(event) => setNewDesc(event.target.value)} className="mt-1" placeholder="Optional summary" /></div>
+            </div>
+            <Button type="submit" disabled={saving || !newTitle.trim()}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />} Add chapter
+            </Button>
+          </form>
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">Chapters · {filteredChapters.length}</h3>
+            {filteredChapters.length === 0 ? (
+              <p className="py-6 text-sm text-muted-foreground">No chapters yet. Add the first chapter above.</p>
+            ) : filteredChapters.map((chapter, index) => (
+              <section key={chapter.id} className="space-y-4 border-b border-border pb-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="break-words font-semibold">{index + 1}. {chapter.title}</h3>
+                    {chapter.description && <p className="mt-1 text-sm text-muted-foreground">{chapter.description}</p>}
+                    <p className="mt-1 text-xs text-muted-foreground">{lessons.filter((lesson) => lesson.chapter_id === chapter.id).length} lessons · {chapter.is_published ? "Published" : "Draft"}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => setEditingId(editingId === chapter.id ? null : chapter.id)}>{editingId === chapter.id ? "Done" : "Edit"}</Button>
+                    <Button variant="outline" size="sm" onClick={() => void updateChapter(chapter.id, { is_published: !chapter.is_published })}>{chapter.is_published ? "Unpublish" : "Publish"}</Button>
+                    <Button variant="ghost" size="icon" aria-label={`Delete ${chapter.title}`} onClick={() => void deleteChapter(chapter.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                </div>
+
+                {editingId === chapter.id && (
+                  <div className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
+                    <div><Label>Title</Label><Input defaultValue={chapter.title} onBlur={(event) => { if (event.target.value.trim() !== chapter.title) void updateChapter(chapter.id, { title: event.target.value.trim() }); }} className="mt-1" /></div>
+                    <div><Label>Description</Label><Textarea defaultValue={chapter.description || ""} onBlur={(event) => { if (event.target.value !== (chapter.description || "")) void updateChapter(chapter.id, { description: event.target.value || null }); }} className="mt-1" /></div>
+                    <div><Label>Position</Label><Input type="number" defaultValue={chapter.order_index} onBlur={(event) => { const order = Number.parseInt(event.target.value, 10) || 0; if (order !== chapter.order_index) void updateChapter(chapter.id, { order_index: order }); }} className="mt-1" /></div>
+                  </div>
+                )}
+
+                <ChapterLessonsEditor
+                  chapterId={chapter.id}
+                  lessons={lessons.filter((lesson) => lesson.chapter_id === chapter.id)}
+                  onRefresh={() => fetchAll()}
+                />
+              </section>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="py-8 text-sm text-muted-foreground">Create a course to start adding chapters and lessons.</p>
       )}
+    </div>
+  );
+}
 
-      {!selectedCourseId && <p className="text-muted-foreground text-sm">Select a course to add chapters.</p>}
+function ChapterLessonsEditor({ chapterId, lessons, onRefresh }: { chapterId: string; lessons: any[]; onRefresh: () => void }) {
+  const [title, setTitle] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
 
-      {filteredChapters.map((ch) => (
-        <div key={ch.id} className="glass rounded-xl p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => setEditingId(editingId === ch.id ? null : ch.id)}>{ch.title}</h3>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => updateChapter(ch.id, { is_published: !ch.is_published })}>{ch.is_published ? "Unpublish" : "Publish"}</Button>
-              <Button variant="ghost" size="sm" onClick={() => deleteChapter(ch.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${ch.is_published ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"}`}>{ch.is_published ? "Published" : "Draft"}</span>
-            <span>Order: {ch.order_index}</span>
-          </div>
-          {editingId === ch.id && (
-            <div className="grid gap-3 md:grid-cols-2 pt-2">
-              <div><Label>Title</Label><Input defaultValue={ch.title} onBlur={(e) => updateChapter(ch.id, { title: e.target.value })} className="mt-1" /></div>
-              <div><Label>YouTube URL</Label><Input defaultValue={ch.youtube_url || ""} onBlur={(e) => updateChapter(ch.id, { youtube_url: e.target.value || null })} className="mt-1" /></div>
-              <div className="md:col-span-2"><Label>Description</Label><Textarea defaultValue={ch.description || ""} onBlur={(e) => updateChapter(ch.id, { description: e.target.value || null })} className="mt-1" /></div>
-              <div><Label>Order Index</Label><Input type="number" defaultValue={ch.order_index} onBlur={(e) => updateChapter(ch.id, { order_index: parseInt(e.target.value) || 0 })} className="mt-1" /></div>
-              <ChapterResourcesEditor chapterId={ch.id} />
-            </div>
-          )}
+  const addLesson = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from("course_lessons").insert({
+      chapter_id: chapterId,
+      title: title.trim(),
+      description: description || null,
+      video_url: videoUrl.trim() || null,
+      order_index: lessons.length,
+      is_published: false,
+    });
+    if (error) toast({ title: "Lesson could not be added", description: error.message, variant: "destructive" });
+    else {
+      setTitle("");
+      setVideoUrl("");
+      setDescription("");
+      onRefresh();
+    }
+    setSaving(false);
+  };
+
+  const updateLesson = async (id: string, updates: Record<string, any>) => {
+    const { error } = await supabase.from("course_lessons").update(updates).eq("id", id);
+    if (error) toast({ title: "Lesson could not be updated", description: error.message, variant: "destructive" });
+    else onRefresh();
+  };
+
+  const deleteLesson = async (id: string) => {
+    const { error } = await supabase.from("course_lessons").delete().eq("id", id);
+    if (error) toast({ title: "Lesson could not be deleted", description: error.message, variant: "destructive" });
+    else onRefresh();
+  };
+
+  return (
+    <div className="space-y-4 pl-4 md:ml-4 md:border-l md:border-border">
+      <form onSubmit={addLesson} className="grid gap-3 md:grid-cols-2">
+        <h4 className="font-medium md:col-span-2">Add lesson</h4>
+        <div><Label>Lesson title</Label><Input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1" placeholder="Lesson title" required /></div>
+        <div><Label>Video or lesson link</Label><Input type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} className="mt-1" placeholder="https://..." /></div>
+        <div className="md:col-span-2"><Label>Description</Label><Textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1" placeholder="Optional lesson notes" /></div>
+        <div className="md:col-span-2">
+          <Button type="submit" disabled={saving || !title.trim()}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />} Add lesson
+          </Button>
         </div>
+      </form>
+
+      {lessons.length > 0 && <h4 className="font-medium">Lessons · {lessons.length}</h4>}
+      {lessons.map((lesson, index) => (
+        <LessonEditor
+          key={lesson.id}
+          lesson={lesson}
+          chapterId={chapterId}
+          position={index}
+          onUpdate={updateLesson}
+          onDelete={deleteLesson}
+        />
       ))}
     </div>
   );
 }
 
-// ─── Chapter Resources Editor ──────────────────────────────────────
-function ChapterResourcesEditor({ chapterId }: { chapterId: string }) {
+function LessonEditor({ lesson, chapterId, position, onUpdate, onDelete }: {
+  lesson: any;
+  chapterId: string;
+  position: number;
+  onUpdate: (id: string, updates: Record<string, any>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <div className="space-y-3 border-t border-border pt-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="break-words font-medium">{position + 1}. {lesson.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{lesson.is_published ? "Published" : "Draft"}{lesson.video_url ? " · Link added" : " · No link"}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="outline" size="sm" onClick={() => setEditing((value) => !value)}>{editing ? "Done" : "Edit"}</Button>
+          <Button variant="outline" size="sm" onClick={() => void onUpdate(lesson.id, { is_published: !lesson.is_published })}>{lesson.is_published ? "Unpublish" : "Publish"}</Button>
+          <Button variant="ghost" size="icon" aria-label={`Delete ${lesson.title}`} onClick={() => void onDelete(lesson.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
+          <div><Label>Title</Label><Input defaultValue={lesson.title} onBlur={(event) => { if (event.target.value.trim() !== lesson.title) void onUpdate(lesson.id, { title: event.target.value.trim() }); }} className="mt-1" /></div>
+          <div><Label>Video or lesson link</Label><Input type="url" defaultValue={lesson.video_url || ""} onBlur={(event) => { if (event.target.value !== (lesson.video_url || "")) void onUpdate(lesson.id, { video_url: event.target.value || null }); }} className="mt-1" /></div>
+          <div className="md:col-span-2"><Label>Description</Label><Textarea defaultValue={lesson.description || ""} onBlur={(event) => { if (event.target.value !== (lesson.description || "")) void onUpdate(lesson.id, { description: event.target.value || null }); }} className="mt-1" /></div>
+          <div><Label>Position</Label><Input type="number" defaultValue={lesson.order_index} onBlur={(event) => { const order = Number.parseInt(event.target.value, 10) || 0; if (order !== lesson.order_index) void onUpdate(lesson.id, { order_index: order }); }} className="mt-1" /></div>
+          <LessonResourcesEditor lessonId={lesson.id} chapterId={chapterId} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LessonResourcesEditor({ lessonId, chapterId }: { lessonId: string; chapterId: string }) {
   const [resources, setResources] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fetchResources = async () => { const { data } = await supabase.from("chapter_resources").select("*").eq("chapter_id", chapterId); setResources(data || []); };
-  useEffect(() => { fetchResources(); }, [chapterId]);
+  const fetchResources = async () => {
+    const { data, error } = await supabase.from("chapter_resources").select("*").eq("lesson_id", lessonId).order("created_at");
+    setResources(data || []);
+    if (error) toast({ title: "Could not load lesson resources", description: error.message, variant: "destructive" });
+  };
+  useEffect(() => { void fetchResources(); }, [lessonId]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const fileName = `${chapterId}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from("course-resources").upload(fileName, file);
-    if (!error) {
-      const { data: urlData } = supabase.storage.from("course-resources").getPublicUrl(fileName);
-      await supabase.from("chapter_resources").insert({ chapter_id: chapterId, title: file.name, file_url: urlData.publicUrl, file_type: file.type, file_size: file.size });
-      fetchResources();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    const fileName = `${lessonId}/${Date.now()}_${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("course-resources").upload(fileName, file);
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+    } else {
+      const { error: insertError } = await supabase.from("chapter_resources").insert({
+        chapter_id: chapterId,
+        lesson_id: lessonId,
+        title: file.name,
+        file_url: fileName,
+        file_type: file.type,
+        file_size: file.size,
+      });
+      if (insertError) {
+        await supabase.storage.from("course-resources").remove([fileName]);
+        toast({ title: "Resource could not be saved", description: insertError.message, variant: "destructive" });
+      } else {
+        await fetchResources();
+      }
     }
     setUploading(false);
+    e.target.value = "";
   };
 
-  const deleteResource = async (id: string) => { await supabase.from("chapter_resources").delete().eq("id", id); fetchResources(); };
+  const deleteResource = async (resource: any) => {
+    const { error } = await supabase.from("chapter_resources").delete().eq("id", resource.id);
+    if (error) {
+      toast({ title: "Resource could not be removed", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!resource.file_url.startsWith("http")) await supabase.storage.from("course-resources").remove([resource.file_url]);
+    await fetchResources();
+  };
 
   return (
-    <div className="md:col-span-2 space-y-2">
-      <Label>Resources</Label>
+    <div className="space-y-2 md:col-span-2">
+      <Label>Lesson resources</Label>
       {resources.map((r) => (
-        <div key={r.id} className="flex items-center justify-between bg-secondary/30 rounded-lg px-3 py-2 text-sm">
-          <span>{r.title}</span>
-          <Button variant="ghost" size="sm" onClick={() => deleteResource(r.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+        <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg bg-secondary/30 px-3 py-2 text-sm">
+          <span className="min-w-0 break-words">{r.title}</span>
+          <Button variant="ghost" size="icon" aria-label={`Remove ${r.title}`} onClick={() => void deleteResource(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
         </div>
       ))}
-      <label className="flex items-center gap-2 cursor-pointer text-primary text-sm hover:underline">
-        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-        {uploading ? "Uploading..." : "Upload Resource"}
-        <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
-      </label>
+      <Button variant="outline" size="sm" asChild disabled={uploading}>
+        <label className="cursor-pointer">
+          {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+          {uploading ? "Uploading..." : "Upload resource"}
+          <input type="file" className="sr-only" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </Button>
     </div>
   );
 }
