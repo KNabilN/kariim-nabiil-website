@@ -109,6 +109,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_preview: boolean
           is_published: boolean
           order_index: number
           title: string
@@ -120,6 +121,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_preview?: boolean
           is_published?: boolean
           order_index?: number
           title: string
@@ -131,6 +133,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_preview?: boolean
           is_published?: boolean
           order_index?: number
           title?: string
@@ -143,6 +146,51 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "course_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_certificates: {
+        Row: {
+          certificate_code: string
+          course_id: string
+          course_title: string
+          id: string
+          issued_at: string
+          student_id: string
+          student_name: string
+        }
+        Insert: {
+          certificate_code: string
+          course_id: string
+          course_title: string
+          id?: string
+          issued_at?: string
+          student_id: string
+          student_name: string
+        }
+        Update: {
+          certificate_code?: string
+          course_id?: string
+          course_title?: string
+          id?: string
+          issued_at?: string
+          student_id?: string
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "course_students"
             referencedColumns: ["id"]
           },
         ]
@@ -210,12 +258,59 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_progress: {
+        Row: {
+          completed_at: string
+          course_id: string
+          id: string
+          lesson_id: string
+          student_id: string
+        }
+        Insert: {
+          completed_at?: string
+          course_id: string
+          id?: string
+          lesson_id: string
+          student_id: string
+        }
+        Update: {
+          completed_at?: string
+          course_id?: string
+          id?: string
+          lesson_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_progress_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "course_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           company_name: string | null
           course_id: string | null
           course_title: string | null
           created_at: string
+          discount_code: string | null
           discount_requested: string | null
           email: string
           id: string
@@ -233,6 +328,7 @@ export type Database = {
           course_id?: string | null
           course_title?: string | null
           created_at?: string
+          discount_code?: string | null
           discount_requested?: string | null
           email: string
           id?: string
@@ -250,6 +346,7 @@ export type Database = {
           course_id?: string | null
           course_title?: string | null
           created_at?: string
+          discount_code?: string | null
           discount_requested?: string | null
           email?: string
           id?: string
@@ -271,6 +368,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           price: number | null
+          slug: string | null
           title: string
         }
         Insert: {
@@ -279,6 +377,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           price?: number | null
+          slug?: string | null
           title: string
         }
         Update: {
@@ -287,6 +386,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           price?: number | null
+          slug?: string | null
           title?: string
         }
         Relationships: []
@@ -297,6 +397,7 @@ export type Database = {
           course_id: string | null
           created_at: string
           currency: string | null
+          discount_code: string | null
           email: string
           full_name: string
           id: string
@@ -312,6 +413,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           currency?: string | null
+          discount_code?: string | null
           email: string
           full_name: string
           id?: string
@@ -327,6 +429,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           currency?: string | null
+          discount_code?: string | null
           email?: string
           full_name?: string
           id?: string

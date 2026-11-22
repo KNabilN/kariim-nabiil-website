@@ -24,6 +24,8 @@ export function defaultBrandCms() {
     },
     youtube: BRAND.youtube as string,
     linkedin: BRAND.linkedin as string,
+    tiktok: BRAND.tiktok as string,
+    instagram: BRAND.instagram as string,
     whatsappUrl: BRAND.whatsappUrl as string,
     coursePath: BRAND.coursePath as string,
     salesCourseUrl: BRAND.salesCourseUrl as string,

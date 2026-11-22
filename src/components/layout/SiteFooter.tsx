@@ -67,6 +67,12 @@ export default function SiteFooter() {
             <a href={brand.linkedin} target="_blank" rel="noopener noreferrer" className="block text-white/70 hover:text-white">
               LinkedIn
             </a>
+            <a href={brand.tiktok} target="_blank" rel="noopener noreferrer" className="block text-white/70 hover:text-white">
+              TikTok
+            </a>
+            <a href={brand.instagram} target="_blank" rel="noopener noreferrer" className="block text-white/70 hover:text-white">
+              Instagram
+            </a>
           </div>
         </div>
       </div>

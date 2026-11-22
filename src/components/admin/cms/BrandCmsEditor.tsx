@@ -78,8 +78,24 @@ export default function BrandCmsEditor() {
             <Input className="mt-1" value={draft.linkedin} onChange={(e) => setDraft({ ...draft, linkedin: e.target.value })} />
           </div>
           <div>
+            <Label>TikTok</Label>
+            <Input className="mt-1" value={draft.tiktok} onChange={(e) => setDraft({ ...draft, tiktok: e.target.value })} />
+          </div>
+          <div>
+            <Label>Instagram</Label>
+            <Input className="mt-1" value={draft.instagram} onChange={(e) => setDraft({ ...draft, instagram: e.target.value })} />
+          </div>
+          <div>
             <Label>WhatsApp URL</Label>
-            <Input className="mt-1" value={draft.whatsappUrl} onChange={(e) => setDraft({ ...draft, whatsappUrl: e.target.value })} />
+            <Input
+              className="mt-1"
+              value={draft.whatsappUrl}
+              onChange={(e) => setDraft({ ...draft, whatsappUrl: e.target.value })}
+              placeholder="https://wa.me/201132680858"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Use a phone link (wa.me/20…) so prefilled messages work. Message short links ignore draft text.
+            </p>
           </div>
         </div>
       </div>

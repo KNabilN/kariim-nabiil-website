@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { toast } from "@/hooks/use-toast";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 interface LeadRow {
   id: string;
@@ -19,6 +20,7 @@ interface LeadRow {
   job_title: string | null;
   linkedin: string | null;
   meeting_details: string | null;
+  discount_code: string | null;
   discount_requested: string | null;
 }
 
@@ -68,9 +70,26 @@ export default function LeadsPage() {
     else fetchLeads();
   };
 
-  const waLink = (whatsapp: string) => {
-    const digits = whatsapp.replace(/[^\d+]/g, "");
-    return `https://wa.me/${digits.replace(/^\+/, "")}`;
+  const waLink = (lead: LeadRow) => {
+    const label = interestLabel(lead.interest_type, locale);
+    const lines =
+      locale === "ar"
+        ? [
+            `مرحباً ${lead.name}،`,
+            `بخصوص طلبك${label ? ` (${label})` : ""} من الموقع.`,
+            lead.course_title ? `الكورس: ${lead.course_title}` : "",
+            "حابب أتابع معاك تفاصيل أكتر.",
+          ]
+        : [
+            `Hi ${lead.name},`,
+            `Following up on your${label ? ` ${label.toLowerCase()}` : ""} request from the website.`,
+            lead.course_title ? `Course: ${lead.course_title}` : "",
+            "Happy to continue the conversation here.",
+          ];
+    return buildWhatsAppUrl({
+      phone: lead.whatsapp,
+      text: lines.filter(Boolean).join("\n"),
+    });
   };
 
   if (loading) {
@@ -128,10 +147,19 @@ export default function LeadsPage() {
                       {lead.intent}
                       {label ? ` · ${label}` : ""} · {lead.status} · {new Date(lead.created_at).toLocaleString()}
                     </p>
-                    {lead.interest_type === "course" && lead.course_title && (
-                      <p className="text-sm text-foreground">
-                        <span className="font-semibold">{t.lead.selectCourse}:</span> {lead.course_title}
-                      </p>
+                    {lead.interest_type === "course" && (lead.course_title || lead.discount_code) && (
+                      <div className="space-y-1 text-sm text-foreground">
+                        {lead.course_title && (
+                          <p>
+                            <span className="font-semibold">{t.lead.selectCourse}:</span> {lead.course_title}
+                          </p>
+                        )}
+                        {lead.discount_code && (
+                          <p>
+                            <span className="font-semibold">{t.lead.discountCode}:</span> {lead.discount_code}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {lead.interest_type === "financial_aid" && (
                       <div className="space-y-1 text-sm text-foreground">
@@ -178,7 +206,7 @@ export default function LeadsPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
-                      <a href={waLink(lead.whatsapp)} target="_blank" rel="noopener noreferrer">
+                      <a href={waLink(lead)} target="_blank" rel="noopener noreferrer">
                         <MessageCircle className="me-1 h-4 w-4" />
                         {a.openWhatsApp}
                       </a>

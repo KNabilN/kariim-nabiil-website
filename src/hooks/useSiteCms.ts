@@ -33,9 +33,13 @@ export function useCmsBrand(locale: Locale) {
       return {
         ...base,
         ...localized,
+        // Team WhatsApp inbox is owned by brand.ts so lead messages never go to the visitor's number / stale CMS.
+        phone: base.phone,
         youtube: remote.youtube || base.youtube,
         linkedin: remote.linkedin || base.linkedin,
-        whatsappUrl: remote.whatsappUrl || base.whatsappUrl,
+        tiktok: remote.tiktok || base.tiktok,
+        instagram: remote.instagram || base.instagram,
+        whatsappUrl: base.whatsappUrl,
         coursePath: remote.coursePath || base.coursePath,
         salesCourseUrl: remote.salesCourseUrl || base.salesCourseUrl,
         n8nPlaylistUrl: remote.n8nPlaylistUrl || base.n8nPlaylistUrl,
@@ -80,6 +84,8 @@ export function useCmsCatalog(locale: Locale) {
           featured: item.featured ?? staticCourse?.featured,
           price: staticCourse?.price,
           currency: staticCourse?.currency,
+          priceIntl: staticCourse?.priceIntl,
+          currencyIntl: staticCourse?.currencyIntl,
           instructor: brand.name,
           level: item.level?.[locale] || item.level?.en || staticCourse?.level || "",
           language: locale === "ar" ? "العربية" : "Arabic",

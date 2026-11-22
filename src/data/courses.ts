@@ -1,13 +1,22 @@
 import { BRAND, getBrand } from "@/lib/brand";
 import type { Locale } from "@/i18n/translations";
-import studio from "@/assets/karim-studio.jpg";
-import flutterForward from "@/assets/gallery/flutter-forward.jpg";
-import speakingStage from "@/assets/gallery/speaking-stage.jpg";
-import stagePresenter from "@/assets/gallery/stage-presenter.jpg";
+import { agenticCurriculumAr, agenticCurriculumEn } from "@/data/agenticCurriculum";
+import agenticCover from "@/assets/courses/agentic-ai-engineering.jpg";
+import aiSalesCover from "@/assets/courses/ai-sales-automation-n8n.jpg";
+import n8nCover from "@/assets/courses/n8n-with-karim.jpg";
+import advancedN8nCover from "@/assets/courses/advanced-n8n-with-karim.jpg";
+
+export interface CourseLecture {
+  title: string;
+  preview?: boolean;
+  /** Only set for free-preview lectures on the public page. */
+  videoUrl?: string;
+}
 
 export interface CourseModule {
   title: string;
-  body: string;
+  body?: string;
+  lectures?: CourseLecture[];
 }
 
 export interface CatalogCourse {
@@ -22,6 +31,9 @@ export interface CatalogCourse {
   free?: boolean;
   price?: number;
   currency?: string;
+  /** Price for learners outside Egypt. */
+  priceIntl?: number;
+  currencyIntl?: string;
   instructor: string;
   level: string;
   language: string;
@@ -70,11 +82,13 @@ const courseSources: CourseSource[] = [
     featured: true,
     price: 3500,
     currency: "EGP",
+    priceIntl: 100,
+    currencyIntl: "USD",
     level: {
       en: "Beginner to Intermediate",
       ar: "مبتدئ إلى متوسط",
     },
-    image: speakingStage,
+    image: agenticCover,
     highlights: {
       en: [
         "Beginner-friendly foundations",
@@ -112,66 +126,8 @@ const courseSources: CourseSource[] = [
       ],
     },
     modules: {
-      en: [
-        {
-          title: "Module 1 — AI & LLM Fundamentals",
-          body: "Artificial Intelligence, Generative AI, LLMs, prompting, and APIs.",
-        },
-        {
-          title: "Module 2 — Python & AI Programming Foundations",
-          body: "Development environments, Python, APIs, Google Colab, and first Generative AI applications.",
-        },
-        {
-          title: "Module 3 — Agentic AI Systems & Design Patterns",
-          body: "Agentic architecture, Prompt Chaining, Routing, Parallelization, Async, Orchestration, and Reviewer-Optimizer.",
-        },
-        {
-          title: "Module 4 — AI Agents & Tool Calling",
-          body: "Tool definitions, agent decision-making, external tool execution, and practical integrations.",
-        },
-        {
-          title: "Module 5 — Retrieval-Augmented Generation",
-          body: "RAG architecture, chunking, retrieval, vector databases, and Python implementation.",
-        },
-        {
-          title: "Module 6 — Frameworks, Automation & Memory",
-          body: "CrewAI, n8n, orchestration, agent memory, and intelligent workflow development.",
-        },
-        {
-          title: "Module 7 — Practical Projects",
-          body: "Applied exercises and real-world project implementations based on the verified course curriculum.",
-        },
-      ],
-      ar: [
-        {
-          title: "الوحدة 1 — أساسيات الذكاء الاصطناعي ونماذج اللغة",
-          body: "الذكاء الاصطناعي، التوليدي، نماذج اللغة، التوجيه عبر الـ prompts، وواجهات البرمجة.",
-        },
-        {
-          title: "الوحدة 2 — أساسيات Python وبرمجة الذكاء الاصطناعي",
-          body: "بيئات التطوير، Python، واجهات البرمجة، Google Colab، وأول تطبيقات الذكاء الاصطناعي التوليدي.",
-        },
-        {
-          title: "الوحدة 3 — أنظمة الذكاء الاصطناعي الوكيلي وأنماط التصميم",
-          body: "البنية الوكيلية، سلسلة الـ prompts، التوجيه، التوازي، غير المتزامن، التنسيق، والمراجع-المُحسِّن.",
-        },
-        {
-          title: "الوحدة 4 — وكلاء الذكاء الاصطناعي واستدعاء الأدوات",
-          body: "تعريف الأدوات، اتخاذ القرار لدى الوكيل، تنفيذ الأدوات الخارجية، والتكاملات العملية.",
-        },
-        {
-          title: "الوحدة 5 — التوليد المعزّز بالاسترجاع (RAG)",
-          body: "بنية RAG، التقسيم، الاسترجاع، قواعد البيانات المتجهة، والتنفيذ بـ Python.",
-        },
-        {
-          title: "الوحدة 6 — الأطر والأتمتة والذاكرة",
-          body: "CrewAI و n8n والتنسيق وذاكرة الوكيل وتطوير مسارات عمل ذكية.",
-        },
-        {
-          title: "الوحدة 7 — مشاريع عملية",
-          body: "تمارين تطبيقية ومشاريع واقعية مبنية على منهج الدورة المعتمد.",
-        },
-      ],
+      en: agenticCurriculumEn,
+      ar: agenticCurriculumAr,
     },
   },
   {
@@ -191,7 +147,7 @@ const courseSources: CourseSource[] = [
       en: "Beginner to Intermediate",
       ar: "مبتدئ إلى متوسط",
     },
-    image: studio,
+    image: aiSalesCover,
     highlights: {
       en: ["n8n Workflows", "AI Integration", "Lead Scoring", "CRM Automation"],
       ar: ["مسارات عمل n8n", "تكامل الذكاء الاصطناعي", "تقييم العملاء المحتملين", "أتمتة CRM"],
@@ -229,7 +185,7 @@ const courseSources: CourseSource[] = [
       en: "Beginner",
       ar: "مبتدئ",
     },
-    image: flutterForward,
+    image: n8nCover,
     highlights: {
       en: ["Workflow Basics", "Automation", "Integrations", "Hands-on Projects"],
       ar: ["أساسيات مسارات العمل", "الأتمتة", "التكاملات", "مشاريع عملية"],
@@ -253,7 +209,7 @@ const courseSources: CourseSource[] = [
       en: "Intermediate to Advanced",
       ar: "متوسط إلى متقدم",
     },
-    image: stagePresenter,
+    image: advancedN8nCover,
     highlights: {
       en: ["AI Automation Engineering", "Business collaboration", "Production n8n", "Real-world systems"],
       ar: ["هندسة أتمتة الذكاء الاصطناعي", "التعاون مع فرق الأعمال", "n8n للإنتاج", "أنظمة واقعية"],
@@ -280,6 +236,8 @@ function localizeCourse(source: CourseSource, locale: Locale): CatalogCourse {
     free: source.free,
     price: source.price,
     currency: source.currency,
+    priceIntl: source.priceIntl,
+    currencyIntl: source.currencyIntl,
     instructor: brand.name,
     level: source.level[locale],
     language: locale === "ar" ? "العربية" : "Arabic",

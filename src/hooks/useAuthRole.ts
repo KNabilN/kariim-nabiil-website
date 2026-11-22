@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,35 +17,59 @@ export function useAuthRole(): AuthRoleState {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const rolesUserIdRef = useRef<string | null>(null);
+  const loadingUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const loadRoles = async (userId: string) => {
+      if (rolesUserIdRef.current === userId) {
+        setLoading(false);
+        return;
+      }
+      if (loadingUserIdRef.current === userId) return;
+
+      loadingUserIdRef.current = userId;
+      setLoading(true);
       const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
       if (!mounted) return;
-      setRoles((data || []).map((row) => row.role as AppRole));
-      setLoading(false);
+
+      if (loadingUserIdRef.current === userId) {
+        rolesUserIdRef.current = userId;
+        loadingUserIdRef.current = null;
+        setRoles((data || []).map((row) => row.role as AppRole));
+        setLoading(false);
+      }
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const applySession = (next: Session | null) => {
       setSession(next);
+
       if (!next) {
+        rolesUserIdRef.current = null;
+        loadingUserIdRef.current = null;
         setRoles([]);
         setLoading(false);
         return;
       }
-      setLoading(true);
-      void loadRoles(next.user.id);
-    });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (!data.session) {
+      // Same user already authorized (token refresh / tab focus) — no UI remount
+      if (rolesUserIdRef.current === next.user.id) {
         setLoading(false);
         return;
       }
-      void loadRoles(data.session.user.id);
+
+      void loadRoles(next.user.id);
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      applySession(next);
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      applySession(data.session);
     });
 
     return () => {
@@ -66,6 +90,8 @@ export function useAuthRole(): AuthRoleState {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    rolesUserIdRef.current = null;
+    loadingUserIdRef.current = null;
     setSession(null);
     setRoles([]);
   };

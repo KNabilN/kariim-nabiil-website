@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { getVideoEmbedUrl } from "@/lib/videoUrl";
@@ -17,6 +17,10 @@ interface LessonViewerProps {
   title: string;
   description: string | null;
   videoUrl: string | null;
+  completed: boolean;
+  hasNext: boolean;
+  completing?: boolean;
+  onCompleteAndNext: () => void;
 }
 
 function extractStoragePath(fileUrl: string): string | null {
@@ -35,7 +39,16 @@ function extractStoragePath(fileUrl: string): string | null {
   return fileUrl.startsWith("http") ? null : fileUrl;
 }
 
-const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerProps) => {
+const LessonViewer = ({
+  lessonId,
+  title,
+  description,
+  videoUrl,
+  completed,
+  hasNext,
+  completing,
+  onCompleteAndNext,
+}: LessonViewerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -58,7 +71,7 @@ const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerPr
       setLoading(false);
     };
 
-    fetchResources();
+    void fetchResources();
     return () => {
       isCurrent = false;
     };
@@ -98,32 +111,42 @@ const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerPr
   const externalVideoUrl = videoUrl && !embedUrl ? videoUrl : null;
 
   return (
-    <main className="min-w-0 flex-1 space-y-6">
-      <header>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        {description && <p className="mt-2 text-muted-foreground">{description}</p>}
-      </header>
-
+    <main className="min-w-0 flex-1 space-y-4 pb-24 lg:space-y-6 lg:pb-0">
       {embedUrl && (
-        <div className="aspect-video overflow-hidden rounded-xl border border-border bg-secondary/20">
-          <iframe
-            src={embedUrl}
-            title={title}
-            className="h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+        <div className="-mx-4 overflow-hidden border-y border-border bg-black sm:mx-0 sm:rounded-xl sm:border">
+          <div className="aspect-video w-full">
+            <iframe
+              src={embedUrl}
+              title={title}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
         </div>
       )}
 
       {externalVideoUrl && (
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="w-full sm:w-auto">
           <a href={externalVideoUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-2 h-4 w-4" />
+            <ExternalLink className="me-2 h-4 w-4" />
             Open lesson video
           </a>
         </Button>
       )}
+
+      <header>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-xl font-bold leading-snug lg:text-2xl">{title}</h2>
+          {completed && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Completed
+            </span>
+          )}
+        </div>
+        {description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground lg:line-clamp-none lg:text-base">{description}</p>}
+      </header>
 
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -131,14 +154,14 @@ const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerPr
           Loading lesson resources...
         </div>
       ) : resources.length > 0 ? (
-        <section className="space-y-3 border-t border-border pt-5">
+        <section className="space-y-3 border-t border-border pt-4 lg:pt-5">
           <h3 className="font-semibold">Lesson resources</h3>
           <ul className="divide-y divide-border">
             {resources.map((resource) => (
               <li key={resource.id}>
                 <Button
                   variant="ghost"
-                  onClick={() => handleDownload(resource)}
+                  onClick={() => void handleDownload(resource)}
                   disabled={downloading === resource.id}
                   className="h-auto min-h-12 w-full justify-start gap-3 whitespace-normal px-2 py-3 text-left"
                 >
@@ -157,6 +180,52 @@ const LessonViewer = ({ lessonId, title, description, videoUrl }: LessonViewerPr
       ) : (
         <p className="text-sm text-muted-foreground">No resources for this lesson yet.</p>
       )}
+
+      {/* Desktop footer */}
+      <div className="hidden flex-wrap items-center justify-between gap-3 border-t border-border pt-5 lg:flex">
+        <p className="text-sm text-muted-foreground">
+          {completed
+            ? hasNext
+              ? "Lecture marked complete. Continue when you're ready."
+              : "Lecture marked complete."
+            : "Mark this lecture complete to track your progress."}
+        </p>
+        <Button size="lg" disabled={completing} onClick={onCompleteAndNext}>
+          {completing ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+          {hasNext ? (
+            <>
+              {completed ? "Next" : "Complete & Next"}
+              <ArrowRight className="ms-1 h-4 w-4" />
+            </>
+          ) : completed ? (
+            "Course finished"
+          ) : (
+            "Complete lecture"
+          )}
+        </Button>
+      </div>
+
+      {/* Mobile sticky complete bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:hidden">
+        <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {completed ? (hasNext ? "Ready for the next lecture" : "Course finished") : "Mark complete to continue"}
+          </p>
+          <Button className="shrink-0" disabled={completing} onClick={onCompleteAndNext}>
+            {completing ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+            {hasNext ? (
+              <>
+                {completed ? "Next" : "Complete & Next"}
+                <ArrowRight className="ms-1 h-4 w-4" />
+              </>
+            ) : completed ? (
+              "Done"
+            ) : (
+              "Complete"
+            )}
+          </Button>
+        </div>
+      </div>
     </main>
   );
 };

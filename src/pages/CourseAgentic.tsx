@@ -1,27 +1,31 @@
-import { Link } from "react-router-dom";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
+import CourseCurriculum from "@/components/course-marketplace/CourseCurriculum";
 import StickyEnrollCard from "@/components/course-marketplace/StickyEnrollCard";
 import WhatYouLearn from "@/components/course-marketplace/WhatYouLearn";
 import { getCourseById } from "@/data/courses";
-import { getCv } from "@/data/cv";
-import { portraits } from "@/data/gallery";
-import { useCmsBrand, useCmsCatalog, useCmsCv } from "@/hooks/useSiteCms";
+import { usePublicCourseCurriculum } from "@/hooks/usePublicCourseCurriculum";
+import { useCmsBrand, useCmsCatalog } from "@/hooks/useSiteCms";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { getBrand } from "@/lib/brand";
+
+const COURSE_SLUG = "agentic-ai-engineering";
 
 export default function CourseAgentic() {
   const { t, locale } = useLanguage();
   const { data: brandCms } = useCmsBrand(locale);
-  const { data: cvCms } = useCmsCv(locale);
   const { data: catalogCms } = useCmsCatalog(locale);
+  const { data: curriculum } = usePublicCourseCurriculum(COURSE_SLUG, locale);
   const brand = brandCms || getBrand(locale);
-  const cv = cvCms || getCv(locale);
-  const course =
-    catalogCms?.find((item) => item.id === "agentic-ai-engineering") ||
-    getCourseById("agentic-ai-engineering", locale);
+  const staticCourse = getCourseById(COURSE_SLUG, locale);
+  const catalogCourse = catalogCms?.find((item) => item.id === COURSE_SLUG) || staticCourse;
 
-  if (!course) return null;
+  if (!catalogCourse) return null;
+
+  const modules = curriculum?.modules?.length ? curriculum.modules : catalogCourse.modules || [];
+  const course = {
+    ...catalogCourse,
+    price: curriculum?.price ?? catalogCourse.price,
+    currency: curriculum?.currency || catalogCourse.currency || "EGP",
+  };
 
   return (
     <div className="section-container grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -43,7 +47,14 @@ export default function CourseAgentic() {
             <span className="font-semibold text-white">{brand.studentsLabel}</span>
             {typeof course.price === "number" && course.price > 0 && (
               <span className="font-bold text-white">
-                {course.price.toLocaleString(locale === "ar" ? "ar-EG" : "en-EG")} {course.currency || "EGP"}
+                {t.course.priceInEgypt}: {course.price.toLocaleString(locale === "ar" ? "ar-EG" : "en-EG")}{" "}
+                {course.currency || "EGP"}
+              </span>
+            )}
+            {typeof course.priceIntl === "number" && course.priceIntl > 0 && (
+              <span className="font-bold text-white">
+                {t.course.priceOutsideEgypt}: {course.priceIntl.toLocaleString(locale === "ar" ? "ar-EG" : "en-US")}{" "}
+                {course.currencyIntl || "USD"}
               </span>
             )}
           </div>
@@ -60,42 +71,7 @@ export default function CourseAgentic() {
 
           {course.learnings && <WhatYouLearn items={course.learnings} />}
 
-          <section id="curriculum" className="rounded-md border border-border bg-card p-6 md:p-8">
-            <h2 className="text-xl font-bold text-navy md:text-2xl">{t.course.courseContent}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {course.modules?.length || 0} {t.course.modules}
-            </p>
-            <Accordion type="single" collapsible className="mt-4">
-              {(course.modules || []).map((module, index) => (
-                <AccordionItem key={module.title} value={`module-${index}`}>
-                  <AccordionTrigger className="text-start text-base font-semibold">{module.title}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">{module.body}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </section>
-
-          <section className="rounded-md border border-border bg-card p-6 md:p-8">
-            <h2 className="text-xl font-bold text-navy md:text-2xl">{t.course.instructor}</h2>
-            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
-              <img src={portraits.suit} alt={brand.fullName} className="h-24 w-24 rounded-full object-cover object-top" />
-              <div>
-                <h3 className="text-lg font-bold text-navy">{brand.fullName}</h3>
-                <p className="text-sm text-primary">{brand.specialty}</p>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">{cv.summary}</p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/about">{t.course.moreAboutMe}</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={brand.linkedin} target="_blank" rel="noopener noreferrer">
-                      LinkedIn
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </section>
+          {modules.length > 0 && <CourseCurriculum modules={modules} />}
         </div>
       </div>
 

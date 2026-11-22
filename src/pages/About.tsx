@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { Linkedin, Youtube } from "lucide-react";
+import { Instagram, Linkedin, Youtube } from "lucide-react";
 import PageHero from "@/components/layout/PageHero";
 import PresenceGallery from "@/components/brand/PresenceGallery";
+import TikTokIcon from "@/components/brand/TikTokIcon";
 import { Button } from "@/components/ui/button";
 import { getCv } from "@/data/cv";
 import { portraits } from "@/data/gallery";
@@ -90,6 +91,24 @@ export default function About() {
                   className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-[#FF0000] transition-colors hover:bg-secondary"
                 >
                   <Youtube className="h-5 w-5" />
+                </a>
+                <a
+                  href={brand.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TikTok"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-secondary"
+                >
+                  <TikTokIcon className="h-5 w-5" />
+                </a>
+                <a
+                  href={brand.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-[#E4405F] transition-colors hover:bg-secondary"
+                >
+                  <Instagram className="h-5 w-5" />
                 </a>
                 <Button asChild size="sm" className="ms-1">
                   <Link to={brand.coursePath}>{t.nav.exploreCourse}</Link>

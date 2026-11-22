@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="KN">
+  <rect width="64" height="64" rx="14" fill="#0B1220"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="#2563EB" stroke-width="2" opacity="0.55"/>
+  <text
+    x="32"
+    y="40"
+    text-anchor="middle"
+    font-family="Inter, Arial, Helvetica, sans-serif"
+    font-size="26"
+    font-weight="800"
+    letter-spacing="-1"
+    fill="#FFFFFF"
+  >KN</text>
+</svg>

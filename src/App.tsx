@@ -18,10 +18,20 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import CourseLanding from "./pages/CourseLanding";
 import CourseLearn from "./pages/CourseLearn";
+import StudentProfile from "./pages/StudentProfile";
 import TeamDashboard from "./pages/TeamDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Returning from another tab/site shouldn't remount pages or flash loading states
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 60_000,
+    },
+  },
+});
 
 const App = () => (
   <ThemeProvider>
@@ -46,6 +56,7 @@ const App = () => (
               <Route path="/admin/*" element={<Admin />} />
               <Route path="/course/advanced-n8n" element={<CourseLanding />} />
               <Route path="/course/learn/:courseId?" element={<CourseLearn />} />
+              <Route path="/course/profile" element={<StudentProfile />} />
               <Route path="/team-dashboard" element={<TeamDashboard />} />
               <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
               <Route path="*" element={<NotFound />} />

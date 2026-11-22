@@ -1,20 +1,62 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceFingerprint, getDeviceName } from "@/lib/deviceFingerprint";
+import {
+  readStudentSession,
+  writeStudentSession,
+  type StudentSession,
+} from "@/lib/studentSession";
 import { Loader2, ShieldAlert, Mail, ArrowLeft } from "lucide-react";
 
 interface DeviceGateProps {
-  onAccess: (studentId: string) => void;
+  onAccess: (student: StudentSession) => void;
 }
 
 const DeviceGate = ({ onAccess }: DeviceGateProps) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    const restore = async () => {
+      const saved = readStudentSession();
+      if (!saved) {
+        if (mounted) setRestoring(false);
+        return;
+      }
+
+      const { data: student } = await supabase
+        .from("course_students")
+        .select("id, email, full_name, is_active")
+        .eq("id", saved.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (student?.is_active) {
+        const session: StudentSession = {
+          id: student.id,
+          email: student.email,
+          fullName: student.full_name || saved.fullName || "",
+        };
+        writeStudentSession(session);
+        onAccess(session);
+        return;
+      }
+
+      setRestoring(false);
+    };
+    void restore();
+    return () => {
+      mounted = false;
+    };
+  }, [onAccess]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +66,7 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
     try {
       const { data: student, error: fetchErr } = await supabase
         .from("course_students")
-        .select("id, is_active")
+        .select("id, email, full_name, is_active")
         .eq("email", email.trim().toLowerCase())
         .maybeSingle();
 
@@ -41,7 +83,6 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
       const fingerprint = getDeviceFingerprint();
       const deviceName = getDeviceName();
 
-      // Check existing devices
       const { data: devices } = await supabase
         .from("student_devices")
         .select("id, device_fingerprint")
@@ -49,50 +90,64 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
 
       const existingDevice = devices?.find((d) => d.device_fingerprint === fingerprint);
 
-      if (existingDevice) {
+      if (!existingDevice) {
+        if (devices && devices.length >= 3) {
+          setError("You've reached the maximum of 3 devices. Please contact support to reset your devices.");
+          return;
+        }
+        await supabase.from("student_devices").insert({
+          student_id: student.id,
+          device_fingerprint: fingerprint,
+          device_name: deviceName,
+        });
+      } else {
         await supabase
           .from("student_devices")
           .update({ last_seen_at: new Date().toISOString() })
           .eq("id", existingDevice.id);
-        onAccess(student.id);
-        return;
       }
 
-      if (devices && devices.length >= 3) {
-        setError("You've reached the maximum of 3 devices. Please contact support to reset your devices.");
-        return;
-      }
-
-      await supabase.from("student_devices").insert({
-        student_id: student.id,
-        device_fingerprint: fingerprint,
-        device_name: deviceName,
-      });
-
-      onAccess(student.id);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      const session: StudentSession = {
+        id: student.id,
+        email: student.email,
+        fullName: student.full_name || "",
+      };
+      writeStudentSession(session);
+      onAccess(session);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
+  if (restoring) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <Link to="/" className="absolute top-6 left-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-4 h-4" />
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
+      <Link
+        to="/"
+        className="absolute left-6 top-6 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
         Homepage
       </Link>
-      <div className="w-full max-w-md glass rounded-2xl p-8 space-y-6">
+      <div className="glass w-full max-w-md space-y-6 rounded-2xl p-8">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-primary" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Mail className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">Student Access</h1>
-          <p className="text-muted-foreground text-sm mt-2">Enter your registered email to access the course</p>
+          <p className="mt-2 text-sm text-muted-foreground">Enter your registered email to access the course</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={(e) => void handleLogin(e)} className="space-y-4">
           <div>
             <Label htmlFor="student-email">Email Address</Label>
             <Input
@@ -107,14 +162,14 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
-              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Access Course
           </Button>
         </form>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -151,7 +151,15 @@ export function PaidCoursesManager() {
 }
 
 // ─── Course Students Section ──────────────────────────────────────
-export function CourseStudentsSection() {
+type StudentsSectionVariant = "full" | "list" | "add";
+
+export function CourseStudentsSection({
+  variant = "full",
+  addedBy = "admin",
+}: {
+  variant?: StudentsSectionVariant;
+  addedBy?: string;
+} = {}) {
   const [students, setStudents] = useState<any[]>([]);
   const [accessMap, setAccessMap] = useState<Record<string, any[]>>({});
   const [paidCourses, setPaidCourses] = useState<any[]>([]);
@@ -160,13 +168,19 @@ export function CourseStudentsSection() {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EGP");
+  const [discountCode, setDiscountCode] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
+  const [lastAddedName, setLastAddedName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCourse, setFilterCourse] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+
+  const showForm = variant === "full" || variant === "add";
+  const showList = variant === "full" || variant === "list";
 
   const fetchAll = async () => {
     setLoading(true);
@@ -186,11 +200,20 @@ export function CourseStudentsSection() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    void fetchAll();
+  }, []);
+
+  useEffect(() => {
+    if (variant === "add") nameInputRef.current?.focus();
+  }, [variant]);
 
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
-      const matchesSearch = !searchQuery || s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || s.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        !searchQuery ||
+        s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.email.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = filterStatus === "all" || (filterStatus === "active" ? s.is_active : !s.is_active);
       const matchesCourse = !filterCourse || (accessMap[s.id] || []).some((a: any) => a.course_id === filterCourse);
       return matchesSearch && matchesStatus && matchesCourse;
@@ -199,48 +222,65 @@ export function CourseStudentsSection() {
 
   const toggleActive = async (id: string, current: boolean) => {
     await supabase.from("course_students").update({ is_active: !current }).eq("id", id);
-    fetchAll();
+    void fetchAll();
   };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCourseId) return;
+    if (!selectedCourseId) {
+      toast({ title: "Select a course", variant: "destructive" });
+      return;
+    }
     setAddLoading(true);
+    const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Upsert student
-    const { data: studentData } = await supabase.from("course_students").upsert(
-      { email: trimmedEmail, full_name: name, is_active: true, added_by: "admin" },
-      { onConflict: "email" }
-    ).select("id").single();
+    const { data: studentData, error: studentError } = await supabase
+      .from("course_students")
+      .upsert({ email: trimmedEmail, full_name: trimmedName, is_active: true, added_by: addedBy }, { onConflict: "email" })
+      .select("id")
+      .single();
 
-    // Grant course access
-    if (studentData) {
-      await supabase.from("course_student_access").upsert(
-        { student_id: studentData.id, course_id: selectedCourseId },
-        { onConflict: "student_id,course_id" }
-      );
+    if (studentError) {
+      toast({ title: "Could not add student", description: studentError.message, variant: "destructive" });
+      setAddLoading(false);
+      return;
     }
 
-    // Create approved payment record
+    if (studentData) {
+      await supabase
+        .from("course_student_access")
+        .upsert({ student_id: studentData.id, course_id: selectedCourseId }, { onConflict: "student_id,course_id" });
+    }
+
+    const trimmedDiscount = discountCode.trim() || null;
+
     await supabase.from("payment_submissions").insert({
       email: trimmedEmail,
-      full_name: name,
+      full_name: trimmedName,
       phone: "-",
       payment_method: "instapay" as any,
       screenshot_url: "-",
       status: "approved" as any,
       amount: amount ? parseFloat(amount) : null,
       currency,
+      discount_code: trimmedDiscount,
       course_id: selectedCourseId,
       reviewed_at: new Date().toISOString(),
     });
 
     setAddLoading(false);
     setAddSuccess(true);
-    setName(""); setEmail(""); setAmount(""); setSelectedCourseId("");
-    setTimeout(() => setAddSuccess(false), 3000);
-    fetchAll();
+    setLastAddedName(trimmedName);
+    setName("");
+    setEmail("");
+    setAmount("");
+    setDiscountCode("");
+    // Keep course selected for rapid consecutive adds
+    setTimeout(() => setAddSuccess(false), 2500);
+    nameInputRef.current?.focus();
+    if (showList) void fetchAll();
+    else toast({ title: "Student added", description: `${trimmedName} can access the course now.` });
   };
 
   const getCourseNames = (studentId: string) => {
@@ -248,101 +288,285 @@ export function CourseStudentsSection() {
     return accesses.map((a: any) => paidCourses.find((c) => c.id === a.course_id)?.title).filter(Boolean);
   };
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  const activeCourses = paidCourses.filter((c) => c.is_active);
+
+  if (loading && variant !== "add") {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (variant === "add") {
+    return (
+      <div className="mx-auto w-full max-w-lg space-y-4">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="mb-5">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-navy">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Add student
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">Fill the form and hit Add — keeps the course selected for the next person.</p>
+          </div>
+
+          <form onSubmit={(e) => void handleAdd(e)} className="space-y-4">
+            <div>
+              <Label htmlFor="team-add-name">Full name</Label>
+              <Input
+                id="team-add-name"
+                ref={nameInputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+                className="mt-1.5 h-11"
+                placeholder="Student name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="team-add-email">Email</Label>
+              <Input
+                id="team-add-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="mt-1.5 h-11"
+                placeholder="student@email.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="team-add-course">Course</Label>
+              <select
+                id="team-add-course"
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                required
+                className="mt-1.5 flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select course</option>
+                {activeCourses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-[1fr_110px] gap-3">
+              <div>
+                <Label htmlFor="team-add-amount">Amount (optional)</Label>
+                <Input
+                  id="team-add-amount"
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="mt-1.5 h-11"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="team-add-currency">Currency</Label>
+                <select
+                  id="team-add-currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="mt-1.5 flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="EGP">EGP</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="SAR">SAR</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="team-add-discount">
+                Discount code <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="team-add-discount"
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                className="mt-1.5 h-11"
+                placeholder="Enter code if they have one"
+                autoComplete="off"
+              />
+            </div>
+
+            <Button type="submit" size="lg" className="h-12 w-full" disabled={addLoading || loading}>
+              {addLoading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Plus className="me-2 h-4 w-4" />}
+              Add student
+            </Button>
+          </form>
+
+          {addSuccess && (
+            <p className="mt-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700">
+              Added {lastAddedName}. Ready for the next one.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="flex gap-4">
-        <div className="glass rounded-xl p-4 flex-1 text-center">
-          <p className="text-3xl font-bold text-primary">{students.length}</p>
-          <p className="text-sm text-muted-foreground">Total Students</p>
+      {showList && (
+        <div className="flex gap-4">
+          <div className="flex-1 rounded-xl border border-border bg-card p-4 text-center">
+            <p className="text-3xl font-bold text-primary">{students.length}</p>
+            <p className="text-sm text-muted-foreground">Total Students</p>
+          </div>
+          <div className="flex-1 rounded-xl border border-border bg-card p-4 text-center">
+            <p className="text-3xl font-bold text-green-500">{students.filter((s) => s.is_active).length}</p>
+            <p className="text-sm text-muted-foreground">Active</p>
+          </div>
+          <div className="flex-1 rounded-xl border border-border bg-card p-4 text-center">
+            <p className="text-3xl font-bold text-destructive">{students.filter((s) => !s.is_active).length}</p>
+            <p className="text-sm text-muted-foreground">Inactive</p>
+          </div>
         </div>
-        <div className="glass rounded-xl p-4 flex-1 text-center">
-          <p className="text-3xl font-bold text-green-500">{students.filter(s => s.is_active).length}</p>
-          <p className="text-sm text-muted-foreground">Active</p>
-        </div>
-        <div className="glass rounded-xl p-4 flex-1 text-center">
-          <p className="text-3xl font-bold text-destructive">{students.filter(s => !s.is_active).length}</p>
-          <p className="text-sm text-muted-foreground">Inactive</p>
-        </div>
-      </div>
+      )}
 
-      {/* Add Student Form */}
-      <div className="glass rounded-xl p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Add Student</h3>
-        <form onSubmit={handleAdd} className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[140px]">
-            <Label>Full Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1" placeholder="Student name" />
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="student@email.com" />
-          </div>
-          <div className="w-[180px]">
-            <Label>Course *</Label>
-            <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} required className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="">Select course</option>
-              {paidCourses.filter(c => c.is_active).map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-            </select>
-          </div>
-          <div className="w-[100px]">
-            <Label>Amount</Label>
-            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1" placeholder="0.00" />
-          </div>
-          <div className="w-[80px]">
-            <Label>Currency</Label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="EGP">EGP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="SAR">SAR</option>
-            </select>
-          </div>
-          <Button type="submit" disabled={addLoading}>
-            {addLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />} Add
-          </Button>
-        </form>
-        {addSuccess && <p className="text-green-500 text-sm mt-2">Student added successfully!</p>}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name or email..." className="pl-9" />
-        </div>
-        <select value={filterCourse} onChange={(e) => setFilterCourse(e.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-          <option value="">All Courses</option>
-          {paidCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      {/* Student List */}
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">{filteredStudents.length} students shown</p>
-        {filteredStudents.map((s) => (
-          <div key={s.id} className="glass rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="font-semibold">{s.full_name}</p>
-              <p className="text-sm text-muted-foreground">{s.email} · Added via {s.added_by}</p>
-              {getCourseNames(s.id).length > 0 && (
-                <div className="flex gap-1 mt-1 flex-wrap">
-                  {getCourseNames(s.id).map((name, i) => (
-                    <span key={i} className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">{name}</span>
-                  ))}
-                </div>
-              )}
+      {showForm && variant === "full" && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold">
+            <UserPlus className="h-4 w-4" /> Add Student
+          </h3>
+          <form onSubmit={(e) => void handleAdd(e)} className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[140px] flex-1">
+              <Label>Full Name</Label>
+              <Input
+                ref={nameInputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="mt-1"
+                placeholder="Student name"
+              />
             </div>
-            <Button variant={s.is_active ? "destructive" : "default"} size="sm" onClick={() => toggleActive(s.id, s.is_active)}>
-              {s.is_active ? <><UserMinus className="w-4 h-4 mr-1" /> Deactivate</> : "Activate"}
+            <div className="min-w-[140px] flex-1">
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1" placeholder="student@email.com" />
+            </div>
+            <div className="w-[180px]">
+              <Label>Course *</Label>
+              <select
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                required
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select course</option>
+                {activeCourses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-[100px]">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1" placeholder="0.00" />
+            </div>
+            <div className="w-[80px]">
+              <Label>Currency</Label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="EGP">EGP</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="SAR">SAR</option>
+              </select>
+            </div>
+            <div className="min-w-[140px] flex-1">
+              <Label>Discount code</Label>
+              <Input
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                className="mt-1"
+                placeholder="Optional"
+                autoComplete="off"
+              />
+            </div>
+            <Button type="submit" disabled={addLoading}>
+              {addLoading ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />} Add
             </Button>
+          </form>
+          {addSuccess && <p className="mt-2 text-sm text-green-500">Student added successfully!</p>}
+        </div>
+      )}
+
+      {showList && (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name or email..." className="pl-9" />
+            </div>
+            <select
+              value={filterCourse}
+              onChange={(e) => setFilterCourse(e.target.value)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">All Courses</option>
+              {paidCourses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
-        ))}
-      </div>
+
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{filteredStudents.length} students shown</p>
+            {filteredStudents.map((s) => (
+              <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+                <div>
+                  <p className="font-semibold">{s.full_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {s.email} · Added via {s.added_by}
+                  </p>
+                  {getCourseNames(s.id).length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {getCourseNames(s.id).map((courseName, i) => (
+                        <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                          {courseName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button variant={s.is_active ? "destructive" : "default"} size="sm" onClick={() => void toggleActive(s.id, s.is_active)}>
+                  {s.is_active ? (
+                    <>
+                      <UserMinus className="me-1 h-4 w-4" /> Deactivate
+                    </>
+                  ) : (
+                    "Activate"
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -524,6 +748,11 @@ export function CoursePaymentsSection({ userId }: { userId: string }) {
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 <span className="capitalize">{p.payment_method?.replace("_", " ")}</span>
                 {p.amount != null && <span className="font-semibold text-foreground">{p.amount} {p.currency || "EGP"}</span>}
+                {p.discount_code && (
+                  <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                    Code: {p.discount_code}
+                  </span>
+                )}
                 {getCourseName(p.course_id) && <span className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">{getCourseName(p.course_id)}</span>}
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(p.created_at).toLocaleDateString()}</span>
               </div>

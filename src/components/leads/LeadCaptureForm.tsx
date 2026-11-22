@@ -6,64 +6,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { useCmsBrand, useCmsCatalog } from "@/hooks/useSiteCms";
 import { supabase } from "@/integrations/supabase/client";
+import { getBrand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import {
+  buildLeadWhatsAppMessage,
+  buildWhatsAppUrl,
+  rememberWhatsAppMessage,
+} from "@/lib/whatsapp";
 
 const AI_SALES_COURSE_ID = "ai-sales-automation-n8n";
 
 export type LeadIntent = "enroll" | "contact";
 export type LeadInterestType = "course" | "consultation" | "project";
-
-function whatsappWithMessage(whatsappUrl: string, message: string) {
-  const base = whatsappUrl.split("?")[0];
-  return `${base}?text=${encodeURIComponent(message)}`;
-}
-
-function buildLeadWhatsAppMessage(
-  payload: LeadSubmission,
-  labels: {
-    course: string;
-    consultation: string;
-    project: string;
-    locale: "en" | "ar";
-  },
-) {
-  const interestLabel =
-    payload.interestType === "course"
-      ? labels.course
-      : payload.interestType === "consultation"
-        ? labels.consultation
-        : labels.project;
-
-  if (labels.locale === "ar") {
-    const lines = [
-      "السلام عليكم،",
-      `أنا ${payload.name}`,
-      `مهتم بـ: ${interestLabel}`,
-    ];
-    if (payload.courseTitle) lines.push(`الكورس: ${payload.courseTitle}`);
-    if (payload.jobTitle) lines.push(`التايتل: ${payload.jobTitle}`);
-    if (payload.companyName) lines.push(`الشركة: ${payload.companyName}`);
-    if (payload.meetingDetails) lines.push(`التفاصيل: ${payload.meetingDetails}`);
-    if (payload.linkedin) lines.push(`لينكدإن: ${payload.linkedin}`);
-    lines.push(`الإيميل: ${payload.email}`);
-    lines.push(`واتساب: ${payload.whatsapp}`);
-    return lines.join("\n");
-  }
-
-  const lines = [
-    "Hello,",
-    `My name is ${payload.name}`,
-    `I'm interested in: ${interestLabel}`,
-  ];
-  if (payload.courseTitle) lines.push(`Course: ${payload.courseTitle}`);
-  if (payload.jobTitle) lines.push(`Title: ${payload.jobTitle}`);
-  if (payload.companyName) lines.push(`Company: ${payload.companyName}`);
-  if (payload.meetingDetails) lines.push(`Details: ${payload.meetingDetails}`);
-  if (payload.linkedin) lines.push(`LinkedIn: ${payload.linkedin}`);
-  lines.push(`Email: ${payload.email}`);
-  lines.push(`WhatsApp: ${payload.whatsapp}`);
-  return lines.join("\n");
-}
 
 interface LeadCaptureFormProps {
   intent: LeadIntent;
@@ -81,6 +35,7 @@ export interface LeadSubmission {
   interestType: LeadInterestType;
   courseId?: string;
   courseTitle?: string;
+  discountCode?: string;
   companyName?: string;
   jobTitle?: string;
   linkedin?: string;
@@ -107,6 +62,7 @@ export default function LeadCaptureForm({
     defaultInterest || (intent === "enroll" ? "course" : ""),
   );
   const [courseId, setCourseId] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [linkedin, setLinkedin] = useState("");
@@ -153,6 +109,7 @@ export default function LeadCaptureForm({
       interestType,
       courseId: needsCourse ? courseId : undefined,
       courseTitle: needsCourse ? selectedCourseTitle : undefined,
+      discountCode: needsCourse ? discountCode.trim() || undefined : undefined,
       companyName: needsMeeting ? companyName.trim() : undefined,
       jobTitle: needsMeeting ? jobTitle.trim() : undefined,
       linkedin: needsMeeting ? linkedin.trim() || undefined : undefined,
@@ -170,6 +127,7 @@ export default function LeadCaptureForm({
         interest_type: payload.interestType,
         course_id: payload.courseId || null,
         course_title: payload.courseTitle || null,
+        discount_code: payload.discountCode || null,
         company_name: payload.companyName || null,
         job_title: payload.jobTitle || null,
         linkedin: payload.linkedin || null,
@@ -196,14 +154,37 @@ export default function LeadCaptureForm({
       return;
     }
 
-    const waBase = brand?.whatsappUrl || "https://wa.me/message/3J6SMTFRTNR7I1";
-    const message = buildLeadWhatsAppMessage(payload, {
-      course: t.lead.interestCourse,
-      consultation: t.lead.interestConsultation,
-      project: t.lead.interestProject,
+    const brandDefaults = getBrand(locale);
+    const interestLabel =
+      payload.interestType === "course"
+        ? t.lead.interestCourse
+        : payload.interestType === "consultation"
+          ? t.lead.interestConsultation
+          : t.lead.interestProject;
+
+    const message = buildLeadWhatsAppMessage({
+      name: payload.name,
+      email: payload.email,
+      whatsapp: payload.whatsapp,
+      interestLabel,
+      courseTitle: payload.courseTitle,
+      discountCode: payload.discountCode,
+      jobTitle: payload.jobTitle,
+      companyName: payload.companyName,
+      meetingDetails: payload.meetingDetails,
+      linkedin: payload.linkedin,
       locale,
     });
-    window.location.assign(whatsappWithMessage(waBase, message));
+    rememberWhatsAppMessage(message);
+
+    // Always open WhatsApp with the team inbox — never the lead's own number.
+    window.location.assign(
+      buildWhatsAppUrl({
+        phone: brandDefaults.phone,
+        whatsappUrl: brandDefaults.whatsappUrl,
+        text: message,
+      }),
+    );
   };
 
   const onCourseChange = (nextId: string) => {
@@ -280,7 +261,10 @@ export default function LeadCaptureForm({
               type="button"
               onClick={() => {
                 setInterestType(option.value);
-                if (option.value !== "course") setCourseId("");
+                if (option.value !== "course") {
+                  setCourseId("");
+                  setDiscountCode("");
+                }
                 if (option.value === "course") clearMeetingFields();
               }}
               className={cn(
@@ -316,6 +300,21 @@ export default function LeadCaptureForm({
           {!loadingCourses && paidCourses.length === 0 && (
             <p className="mt-1.5 text-xs text-muted-foreground">{t.lead.noPaidCourses}</p>
           )}
+
+          <div className="mt-4">
+            <Label htmlFor="lead-discount-code">
+              {t.lead.discountCode}{" "}
+              <span className="font-normal text-muted-foreground">({t.lead.discountCodeOptional})</span>
+            </Label>
+            <Input
+              id="lead-discount-code"
+              value={discountCode}
+              onChange={(event) => setDiscountCode(event.target.value)}
+              className="mt-1.5"
+              placeholder={t.lead.discountCodePlaceholder}
+              autoComplete="off"
+            />
+          </div>
         </div>
       )}
 

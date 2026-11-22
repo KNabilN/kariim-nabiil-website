@@ -36,8 +36,13 @@ export default function CourseCard({ course, className }: CourseCardProps) {
               {t.course.watchNow}
             </span>
           ) : typeof course.price === "number" && course.price > 0 ? (
-            <span className="text-xs font-bold text-navy">
+            <span className="text-end text-xs font-bold text-navy">
               {course.price.toLocaleString()} {course.currency || "EGP"}
+              {typeof course.priceIntl === "number" && course.priceIntl > 0 ? (
+                <span className="mt-0.5 block font-semibold text-muted-foreground">
+                  {course.priceIntl.toLocaleString()} {course.currencyIntl || "USD"}
+                </span>
+              ) : null}
             </span>
           ) : course.external ? (
             <span className="inline-flex items-center gap-1 text-xs font-bold text-primary">

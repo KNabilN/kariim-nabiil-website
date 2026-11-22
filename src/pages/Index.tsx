@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Linkedin, Youtube } from "lucide-react";
+import { ArrowRight, Instagram, Linkedin, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PresenceGallery from "@/components/brand/PresenceGallery";
+import TikTokIcon from "@/components/brand/TikTokIcon";
 import CourseCard from "@/components/course-marketplace/CourseCard";
 import LeadCaptureForm from "@/components/leads/LeadCaptureForm";
 import { portraits } from "@/data/gallery";
@@ -65,6 +66,24 @@ export default function Index() {
                 className="inline-flex h-12 w-12 items-center justify-center rounded-md border border-white/30 text-white transition-colors hover:bg-white/10"
               >
                 <Linkedin className="h-5 w-5" />
+              </a>
+              <a
+                href={brand.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-md border border-white/30 text-white transition-colors hover:bg-white/10"
+              >
+                <TikTokIcon className="h-5 w-5" />
+              </a>
+              <a
+                href={brand.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-md border border-white/30 text-white transition-colors hover:bg-white/10"
+              >
+                <Instagram className="h-5 w-5" />
               </a>
             </div>
 
@@ -209,6 +228,24 @@ export default function Index() {
                 className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-[#FF0000] transition-colors hover:bg-secondary"
               >
                 <Youtube className="h-4 w-4" />
+              </a>
+              <a
+                href={brand.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:bg-secondary"
+              >
+                <TikTokIcon className="h-4 w-4" />
+              </a>
+              <a
+                href={brand.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-[#E4405F] transition-colors hover:bg-secondary"
+              >
+                <Instagram className="h-4 w-4" />
               </a>
             </div>
           </div>

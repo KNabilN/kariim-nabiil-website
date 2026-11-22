@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import type { CatalogCourse } from "@/data/courses";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { getBrand } from "@/lib/brand";
+import {
+  buildFinancialAidWhatsAppMessage,
+  buildWhatsAppUrl,
+  rememberWhatsAppMessage,
+} from "@/lib/whatsapp";
 
 interface StickyEnrollCardProps {
   course: CatalogCourse;
@@ -21,16 +26,26 @@ function formatPrice(price: number, currency: string, locale: string) {
   }
 }
 
-function financialAidWhatsAppUrl(whatsappUrl: string, message: string) {
-  const base = whatsappUrl.split("?")[0];
-  return `${base}?text=${encodeURIComponent(message)}`;
-}
-
 export default function StickyEnrollCard({ course }: StickyEnrollCardProps) {
   const { t, locale } = useLanguage();
   const brand = getBrand(locale);
   const showPrice = typeof course.price === "number" && course.price > 0;
-  const aidWhatsApp = financialAidWhatsAppUrl(brand.whatsappUrl, t.course.financialAidWhatsAppMessage);
+  const showIntlPrice = typeof course.priceIntl === "number" && course.priceIntl > 0;
+  const egyptPriceLabel = showPrice ? formatPrice(course.price!, course.currency || "EGP", locale) : undefined;
+  const intlPriceLabel = showIntlPrice
+    ? formatPrice(course.priceIntl!, course.currencyIntl || "USD", locale)
+    : undefined;
+  const priceLabel = [egyptPriceLabel, intlPriceLabel].filter(Boolean).join(" · ") || undefined;
+  const aidMessage = buildFinancialAidWhatsAppMessage({
+    courseTitle: course.title,
+    priceLabel,
+    locale,
+  });
+  const aidWhatsApp = buildWhatsAppUrl({
+    phone: brand.phone,
+    whatsappUrl: brand.whatsappUrl,
+    text: aidMessage,
+  });
 
   return (
     <aside className="overflow-hidden rounded-md border border-border bg-card shadow-lg">
@@ -39,12 +54,25 @@ export default function StickyEnrollCard({ course }: StickyEnrollCardProps) {
       </div>
 
       <div className="space-y-4 p-5">
-        {showPrice && (
-          <div>
+        {(showPrice || showIntlPrice) && (
+          <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t.course.priceLabel}</p>
-            <p className="mt-0.5 text-3xl font-bold leading-none text-navy">
-              {formatPrice(course.price!, course.currency || "EGP", locale)}
-            </p>
+            {showPrice && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">{t.course.priceInEgypt}</p>
+                <p className="mt-0.5 text-3xl font-bold leading-none text-navy">
+                  {formatPrice(course.price!, course.currency || "EGP", locale)}
+                </p>
+              </div>
+            )}
+            {showIntlPrice && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">{t.course.priceOutsideEgypt}</p>
+                <p className="mt-0.5 text-2xl font-bold leading-none text-navy">
+                  {formatPrice(course.priceIntl!, course.currencyIntl || "USD", locale)}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -64,7 +92,12 @@ export default function StickyEnrollCard({ course }: StickyEnrollCardProps) {
             <Link to="/enroll">{t.course.enrollNow}</Link>
           </Button>
           <Button asChild variant="outline" className="w-full" size="lg">
-            <a href={aidWhatsApp} target="_blank" rel="noopener noreferrer">
+            <a
+              href={aidWhatsApp}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => rememberWhatsAppMessage(aidMessage)}
+            >
               {t.course.requestFinancialAid}
             </a>
           </Button>

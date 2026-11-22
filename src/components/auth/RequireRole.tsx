@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Loader2, LogOut } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Home, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +42,13 @@ export default function RequireRole({ roles, children, title }: RequireRoleProps
     };
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
+        <Button asChild variant="ghost" size="sm" className="absolute start-4 top-4 sm:start-6 sm:top-6">
+          <Link to="/">
+            <ArrowLeft className="me-1.5 h-4 w-4" />
+            {locale === "ar" ? "العودة للرئيسية" : "Back to home"}
+          </Link>
+        </Button>
         <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
           <h1 className="text-center text-2xl font-bold text-navy">{title || a.loginTitle}</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">{a.loginSubtitle}</p>
@@ -60,7 +67,17 @@ export default function RequireRole({ roles, children, title }: RequireRoleProps
               {a.signIn}
             </Button>
           </form>
-          <p className="mt-4 text-center text-xs text-muted-foreground">{locale === "ar" ? "لوحة تحكم آمنة" : "Secure control center"}</p>
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">
+                <Home className="me-1.5 h-4 w-4" />
+                {locale === "ar" ? "الصفحة الرئيسية" : "Home page"}
+              </Link>
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              {locale === "ar" ? "لوحة تحكم آمنة" : "Secure control center"}
+            </p>
+          </div>
         </div>
       </div>
     );

@@ -3,6 +3,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  ExternalLink,
+  Eye,
   FileText,
   Loader2,
   PlayCircle,
@@ -10,17 +12,31 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AGENTIC_COURSE_SLUG,
+  ensureAgenticPaidCourse,
+} from "@/lib/ensureAgenticPaidCourse";
+import { resetAgenticCurriculum } from "@/lib/importAgenticCurriculum";
 import { normalizeVideoUrl } from "@/lib/videoUrl";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { cn } from "@/lib/utils";
 
-type PaidCourse = { id: string; title: string; price: number | null; currency: string | null };
+const AGENTIC_SLUG = AGENTIC_COURSE_SLUG;
+
+type PaidCourse = {
+  id: string;
+  title: string;
+  price: number | null;
+  currency: string | null;
+  slug: string | null;
+};
 type Chapter = {
   id: string;
   course_id: string;
@@ -37,6 +53,7 @@ type Lesson = {
   video_url: string | null;
   order_index: number;
   is_published: boolean;
+  is_preview: boolean;
 };
 type Resource = {
   id: string;
@@ -51,6 +68,7 @@ type LessonDraft = {
   description: string;
   video_url: string;
   is_published: boolean;
+  is_preview: boolean;
 };
 
 export function CourseContentEditor() {
@@ -61,6 +79,7 @@ export function CourseContentEditor() {
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [showNewCourse, setShowNewCourse] = useState(false);
   const [expandedLessonId, setExpandedLessonId] = useState<string | null>(null);
   const [lessonDraft, setLessonDraft] = useState<LessonDraft | null>(null);
   const [lessonDirty, setLessonDirty] = useState(false);
@@ -70,37 +89,105 @@ export function CourseContentEditor() {
   const [courseTitle, setCourseTitle] = useState("");
   const [coursePrice, setCoursePrice] = useState("");
   const [courseCurrency, setCourseCurrency] = useState("EGP");
+  const [courseSlug, setCourseSlug] = useState("");
+  const [selectedPrice, setSelectedPrice] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState("EGP");
+  const [selectedSlug, setSelectedSlug] = useState("");
+  const [savingMeta, setSavingMeta] = useState(false);
 
-  const fetchAll = useCallback(async (preferredCourseId?: string) => {
-    setLoading(true);
-    const [chapRes, coursesRes] = await Promise.all([
-      supabase.from("course_chapters").select("*").order("order_index"),
-      supabase.from("paid_courses").select("*").order("title"),
-    ]);
-    const chapterRows = (chapRes.data || []) as Chapter[];
-    const courseRows = (coursesRes.data || []) as PaidCourse[];
-    setChapters(chapterRows);
-    setPaidCourses(courseRows);
+  const fetchAll = useCallback(
+    async (preferredCourseId?: string, opts?: { silent?: boolean }) => {
+      // Avoid blanking the whole editor when revisiting / soft-refreshing
+      if (!opts?.silent) setLoading(true);
 
-    const chapterIds = chapterRows.map((chapter) => chapter.id);
-    let lessonRows: Lesson[] = [];
-    if (chapterIds.length > 0) {
-      const { data } = await supabase.from("course_lessons").select("*").in("chapter_id", chapterIds).order("order_index");
-      lessonRows = (data || []) as Lesson[];
-    }
-    setLessons(lessonRows);
+      const ensured = await ensureAgenticPaidCourse();
 
-    setSelectedCourseId((current) => {
-      if (preferredCourseId) return preferredCourseId;
-      if (current && courseRows.some((course) => course.id === current)) return current;
-      return courseRows[0]?.id || "";
-    });
-    setLoading(false);
+      const coursesRes = await supabase
+        .from("paid_courses")
+        .select("id, title, price, currency, slug")
+        .order("title");
+
+      let courseRows: PaidCourse[] = [];
+      if (coursesRes.error) {
+        if (/slug/i.test(coursesRes.error.message || "")) {
+          const withoutSlug = await supabase.from("paid_courses").select("id, title, price, currency").order("title");
+          if (withoutSlug.error) {
+            toast({
+              title: locale === "ar" ? "فشل تحميل الدورات" : "Could not load courses",
+              description: withoutSlug.error.message,
+              variant: "destructive",
+            });
+          } else {
+            courseRows = (withoutSlug.data || []).map((course) => ({ ...course, slug: null }));
+          }
+        } else {
+          toast({
+            title: locale === "ar" ? "فشل تحميل الدورات" : "Could not load courses",
+            description: coursesRes.error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        courseRows = coursesRes.data || [];
+      }
+
+      const chapRes = await supabase.from("course_chapters").select("*").order("order_index");
+      const chapterRows = (chapRes.data || []) as Chapter[];
+
+      if (ensured && !courseRows.some((course) => course.id === ensured.id)) {
+        courseRows = [...courseRows, ensured];
+      }
+
+      setChapters(chapterRows);
+      setPaidCourses(courseRows);
+
+      const chapterIds = chapterRows.map((chapter) => chapter.id);
+      let lessonRows: Lesson[] = [];
+      if (chapterIds.length > 0) {
+        const { data } = await supabase
+          .from("course_lessons")
+          .select("*")
+          .in("chapter_id", chapterIds)
+          .order("order_index");
+        lessonRows = ((data || []) as Lesson[]).map((lesson) => ({
+          ...lesson,
+          is_preview: Boolean(lesson.is_preview),
+        }));
+      }
+      setLessons(lessonRows);
+
+      const agenticId =
+        courseRows.find((course) => course.slug === AGENTIC_SLUG)?.id ||
+        courseRows.find((course) => /agentic/i.test(course.title))?.id ||
+        ensured?.id;
+
+      setSelectedCourseId((current) => {
+        if (preferredCourseId) return preferredCourseId;
+        if (current && courseRows.some((course) => course.id === current)) return current;
+        return agenticId || courseRows[0]?.id || "";
+      });
+      setLoading(false);
+    },
+    [locale],
+  );
+
+  useEffect(() => {
+    void fetchAll(undefined, { silent: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only; avoid refetch loops on locale/callback identity
   }, []);
 
   useEffect(() => {
-    void fetchAll();
-  }, [fetchAll]);
+    const selected = paidCourses.find((course) => course.id === selectedCourseId);
+    if (!selected) {
+      setSelectedPrice("");
+      setSelectedCurrency("EGP");
+      setSelectedSlug("");
+      return;
+    }
+    setSelectedPrice(selected.price != null ? String(selected.price) : "");
+    setSelectedCurrency(selected.currency || "EGP");
+    setSelectedSlug(selected.slug || "");
+  }, [paidCourses, selectedCourseId]);
 
   const filteredChapters = useMemo(
     () => chapters.filter((chapter) => chapter.course_id === selectedCourseId).sort((a, b) => a.order_index - b.order_index),
@@ -142,6 +229,7 @@ export function CourseContentEditor() {
       description: lesson.description || "",
       video_url: lesson.video_url || "",
       is_published: lesson.is_published,
+      is_preview: lesson.is_preview,
     });
     setLessonDirty(false);
   };
@@ -159,6 +247,7 @@ export function CourseContentEditor() {
       description: lesson.description || "",
       video_url: lesson.video_url || "",
       is_published: lesson.is_published,
+      is_preview: lesson.is_preview,
     });
     setLessonDirty(false);
   };
@@ -173,6 +262,7 @@ export function CourseContentEditor() {
         description: lessonDraft.description.trim() || null,
         video_url: lessonDraft.video_url.trim() ? normalizeVideoUrl(lessonDraft.video_url) : null,
         is_published: lessonDraft.is_published,
+        is_preview: lessonDraft.is_preview,
       } as never)
       .eq("id", expandedLessonId);
     if (error) {
@@ -180,7 +270,7 @@ export function CourseContentEditor() {
     } else {
       setLessonDirty(false);
       toast({ title: t.admin.saved });
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
     }
     setSavingLesson(false);
   };
@@ -189,12 +279,14 @@ export function CourseContentEditor() {
     event.preventDefault();
     if (!courseTitle.trim()) return;
     setBusy(true);
+    const slug = courseSlug.trim() || null;
     const { data, error } = await supabase
       .from("paid_courses")
       .insert({
         title: courseTitle.trim(),
         price: coursePrice ? Number(coursePrice) : 0,
         currency: courseCurrency,
+        slug,
       })
       .select("id")
       .single();
@@ -203,8 +295,57 @@ export function CourseContentEditor() {
     } else {
       setCourseTitle("");
       setCoursePrice("");
+      setCourseSlug("");
+      setShowNewCourse(false);
       await fetchAll(data.id);
     }
+    setBusy(false);
+  };
+
+  const saveCourseMeta = async () => {
+    if (!selectedCourseId) return;
+    setSavingMeta(true);
+    const slugValue = selectedSlug.trim() || null;
+    const { error } = await supabase
+      .from("paid_courses")
+      .update({
+        price: selectedPrice ? Number(selectedPrice) : 0,
+        currency: selectedCurrency,
+        slug: slugValue,
+      } as never)
+      .eq("id", selectedCourseId);
+    if (error) {
+      toast({ title: "Course settings could not be saved", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: t.admin.saved });
+      await fetchAll(selectedCourseId, { silent: true });
+    }
+    setSavingMeta(false);
+  };
+
+  const resetDefaultCurriculum = async () => {
+    if (!selectedCourseId) return;
+    if (
+      !window.confirm(
+        locale === "ar"
+          ? "هيتبدل كل المحتوى الحالي بمنهج Agentic الافتراضي (12 قسم / 64 محاضرة). متأكد؟"
+          : "This replaces all current content with the default Agentic curriculum (12 sections / 64 lectures). Continue?",
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    const result = await resetAgenticCurriculum(selectedCourseId);
+    if (!result.ok) {
+      toast({ title: "Reset failed", description: result.error, variant: "destructive" });
+    } else {
+      toast({
+        title: locale === "ar" ? "تم إعادة ضبط المنهج" : "Curriculum reset",
+        description: locale === "ar" ? "هيظهر على صفحة الكورس العامة." : "It will show on the public course page.",
+      });
+    }
+    await fetchAll(selectedCourseId, { silent: true });
     setBusy(false);
   };
 
@@ -217,7 +358,7 @@ export function CourseContentEditor() {
         title: locale === "ar" ? "قسم جديد" : "New section",
         description: null,
         order_index: filteredChapters.length,
-        is_published: false,
+        is_published: true,
         course_id: selectedCourseId,
       })
       .select("*")
@@ -227,7 +368,7 @@ export function CourseContentEditor() {
     } else if (data) {
       setEditingSectionId(data.id);
       setSectionTitleDraft(data.title);
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
     }
     setBusy(false);
   };
@@ -239,8 +380,17 @@ export function CourseContentEditor() {
     if (error) toast({ title: "Section could not be updated", description: error.message, variant: "destructive" });
     else {
       setEditingSectionId(null);
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
     }
+  };
+
+  const toggleSectionPublished = async (chapter: Chapter) => {
+    const { error } = await supabase
+      .from("course_chapters")
+      .update({ is_published: !chapter.is_published } as never)
+      .eq("id", chapter.id);
+    if (error) toast({ title: "Section could not be updated", description: error.message, variant: "destructive" });
+    else await fetchAll(selectedCourseId, { silent: true });
   };
 
   const deleteSection = async (chapterId: string) => {
@@ -257,7 +407,7 @@ export function CourseContentEditor() {
           setLessonDirty(false);
         }
       }
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
     }
     setBusy(false);
   };
@@ -273,20 +423,22 @@ export function CourseContentEditor() {
         description: null,
         video_url: null,
         order_index: existing.length,
-        is_published: false,
+        is_published: true,
+        is_preview: false,
       })
       .select("*")
       .single();
     if (error) {
       toast({ title: "Lecture could not be added", description: error.message, variant: "destructive" });
     } else if (data) {
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
       setExpandedLessonId(data.id);
       setLessonDraft({
         title: data.title,
         description: "",
         video_url: "",
-        is_published: false,
+        is_published: true,
+        is_preview: false,
       });
       setLessonDirty(false);
     }
@@ -304,7 +456,7 @@ export function CourseContentEditor() {
         setLessonDraft(null);
         setLessonDirty(false);
       }
-      await fetchAll();
+      await fetchAll(selectedCourseId, { silent: true });
     }
     setBusy(false);
   };
@@ -317,84 +469,109 @@ export function CourseContentEditor() {
     );
   }
 
+  const publicPath = selectedSlug.trim() ? `/courses/${selectedSlug.trim()}` : null;
+
   return (
     <div className="space-y-6">
-      <form
-        onSubmit={createCourse}
-        className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[minmax(0,1fr)_140px_110px_auto] md:items-end"
-      >
-        <div>
-          <Label>{locale === "ar" ? "دورة جديدة" : "New course"}</Label>
-          <Input
-            value={courseTitle}
-            onChange={(event) => setCourseTitle(event.target.value)}
-            className="mt-1"
-            placeholder={locale === "ar" ? "عنوان الدورة" : "Course title"}
-            required
-          />
-        </div>
-        <div>
-          <Label>{locale === "ar" ? "السعر" : "Price"}</Label>
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={coursePrice}
-            onChange={(event) => setCoursePrice(event.target.value)}
-            className="mt-1"
-            placeholder="0.00"
-          />
-        </div>
-        <div>
-          <Label>{locale === "ar" ? "العملة" : "Currency"}</Label>
-          <select
-            value={courseCurrency}
-            onChange={(event) => setCourseCurrency(event.target.value)}
-            className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="EGP">EGP</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="SAR">SAR</option>
-          </select>
-        </div>
-        <Button type="submit" disabled={busy || !courseTitle.trim()}>
-          {busy ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />}
-          {locale === "ar" ? "إنشاء" : "Create"}
-        </Button>
-      </form>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
           {locale === "ar"
-            ? "قسّم دورتك لأقسام، كل قسم لهدف تعليمي واحد. بعدين ضيف محاضرات وفيديوهات وملفات زي يوديمي."
-            : "Create your course in sections, each focused on a single learning objective. Then add lectures, videos, and resources."}
+            ? "عدّل الأقسام والمحاضرات من هنا — التغييرات تظهر على صفحة الكورس العامة."
+            : "Edit sections and lectures here — changes show on the public course page."}
         </p>
-        <select
-          aria-label="Select course"
-          value={selectedCourseId}
-          onChange={(event) => {
-            if (lessonDirty && !window.confirm(locale === "ar" ? "في تعديلات غير محفوظة. إلغاء؟" : "Discard unsaved changes?")) {
-              return;
-            }
-            setExpandedLessonId(null);
-            setLessonDraft(null);
-            setLessonDirty(false);
-            setSelectedCourseId(event.target.value);
-          }}
-          className="flex h-10 min-w-56 rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          {paidCourses.length === 0 ? (
-            <option value="">{locale === "ar" ? "مفيش دورات" : "No courses yet"}</option>
-          ) : (
-            paidCourses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.title}
-              </option>
-            ))
-          )}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Select course"
+            value={selectedCourseId}
+            onChange={(event) => {
+              if (lessonDirty && !window.confirm(locale === "ar" ? "في تعديلات غير محفوظة. إلغاء؟" : "Discard unsaved changes?")) {
+                return;
+              }
+              setExpandedLessonId(null);
+              setLessonDraft(null);
+              setLessonDirty(false);
+              setSelectedCourseId(event.target.value);
+            }}
+            className="flex h-10 min-w-56 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {paidCourses.length === 0 ? (
+              <option value="">{locale === "ar" ? "مفيش دورات" : "No courses yet"}</option>
+            ) : (
+              paidCourses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                  {course.slug ? ` (${course.slug})` : ""}
+                </option>
+              ))
+            )}
+          </select>
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowNewCourse((open) => !open)}>
+            <Plus className="me-1 h-4 w-4" />
+            {locale === "ar" ? "دورة جديدة" : "New course"}
+          </Button>
+        </div>
       </div>
+
+      {showNewCourse && (
+        <form
+          onSubmit={createCourse}
+          className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-2 lg:grid-cols-5 lg:items-end"
+        >
+          <div className="lg:col-span-2">
+            <Label>{locale === "ar" ? "عنوان الدورة" : "Course title"}</Label>
+            <Input
+              value={courseTitle}
+              onChange={(event) => setCourseTitle(event.target.value)}
+              className="mt-1"
+              placeholder={locale === "ar" ? "عنوان الدورة" : "Course title"}
+              required
+            />
+          </div>
+          <div>
+            <Label>{locale === "ar" ? "السعر" : "Price"}</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={coursePrice}
+              onChange={(event) => setCoursePrice(event.target.value)}
+              className="mt-1"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <Label>{locale === "ar" ? "العملة" : "Currency"}</Label>
+            <select
+              value={courseCurrency}
+              onChange={(event) => setCourseCurrency(event.target.value)}
+              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="EGP">EGP</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="SAR">SAR</option>
+            </select>
+          </div>
+          <div>
+            <Label>Slug</Label>
+            <Input
+              value={courseSlug}
+              onChange={(event) => setCourseSlug(event.target.value)}
+              className="mt-1"
+              placeholder={AGENTIC_SLUG}
+            />
+          </div>
+          <div className="flex gap-2 lg:col-span-5">
+            <Button type="submit" disabled={busy || !courseTitle.trim()}>
+              {busy ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />}
+              {locale === "ar" ? "إنشاء" : "Create"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setShowNewCourse(false)}>
+              {t.admin.cancel}
+            </Button>
+          </div>
+        </form>
+      )}
 
       {!selectedCourseId ? (
         <p className="py-8 text-sm text-muted-foreground">
@@ -402,8 +579,64 @@ export function CourseContentEditor() {
         </p>
       ) : (
         <div className="space-y-4">
+          <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <Label>Slug ({locale === "ar" ? "رابط صفحة الكورس" : "public course id"})</Label>
+                <Input
+                  value={selectedSlug}
+                  onChange={(event) => setSelectedSlug(event.target.value)}
+                  className="mt-1"
+                  placeholder={AGENTIC_SLUG}
+                />
+              </div>
+              <div>
+                <Label>{locale === "ar" ? "السعر" : "Price"}</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={selectedPrice}
+                  onChange={(event) => setSelectedPrice(event.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>{locale === "ar" ? "العملة" : "Currency"}</Label>
+                <select
+                  value={selectedCurrency}
+                  onChange={(event) => setSelectedCurrency(event.target.value)}
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="EGP">EGP</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="SAR">SAR</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={savingMeta || busy} onClick={() => void saveCourseMeta()}>
+                {savingMeta ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : null}
+                {locale === "ar" ? "حفظ الإعدادات" : "Save settings"}
+              </Button>
+              <Button type="button" variant="outline" disabled={busy} onClick={() => void resetDefaultCurriculum()}>
+                {locale === "ar" ? "إعادة ضبط المنهج الافتراضي" : "Reset to default curriculum"}
+              </Button>
+              {publicPath && (
+                <Button asChild type="button" variant="ghost">
+                  <Link to={publicPath} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="me-1 h-4 w-4" />
+                    {locale === "ar" ? "عرض صفحة الكورس" : "View course page"}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+
           {filteredChapters.map((chapter, sectionIndex) => {
             const sectionLessons = lessonsByChapter.get(chapter.id) || [];
+            const sectionHasPreview = sectionLessons.some((lesson) => lesson.is_preview);
             return (
               <section key={chapter.id} className="overflow-hidden rounded-lg border border-[#d1d2e0] bg-[#f7f9fa]">
                 <div className="flex flex-wrap items-center gap-2 border-b border-[#d1d2e0] bg-[#f7f9fa] px-4 py-3">
@@ -435,16 +668,37 @@ export function CourseContentEditor() {
                   ) : (
                     <button
                       type="button"
-                      className="inline-flex min-w-0 flex-1 items-center gap-2 text-start text-sm font-semibold text-[#2d2f31] hover:text-primary"
+                      className={cn(
+                        "inline-flex min-w-0 flex-1 items-center gap-2 text-start text-sm font-semibold hover:text-primary",
+                        sectionHasPreview ? "text-[#5624d0]" : "text-[#2d2f31]",
+                      )}
                       onClick={() => {
                         setEditingSectionId(chapter.id);
                         setSectionTitleDraft(chapter.title);
                       }}
                     >
-                      <FileText className="h-4 w-4 shrink-0 text-[#6a6f73]" />
+                      <FileText className={cn("h-4 w-4 shrink-0", sectionHasPreview ? "text-[#5624d0]" : "text-[#6a6f73]")} />
                       <span className="truncate">{chapter.title}</span>
+                      {sectionHasPreview && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#a435f0]/40 bg-[#a435f0]/10 px-2 py-0.5 text-[11px] font-bold text-[#5624d0]">
+                          <Eye className="h-3 w-3" />
+                          {locale === "ar" ? "بريفيو" : "Preview"}
+                        </span>
+                      )}
                     </button>
                   )}
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {sectionLessons.length}{" "}
+                    {locale === "ar" ? "محاضرة" : sectionLessons.length === 1 ? "lecture" : "lectures"}
+                  </span>
+                  <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2d2f31]">
+                    <input
+                      type="checkbox"
+                      checked={chapter.is_published}
+                      onChange={() => void toggleSectionPublished(chapter)}
+                    />
+                    {locale === "ar" ? "منشور" : "Published"}
+                  </label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -462,7 +716,10 @@ export function CourseContentEditor() {
                     const open = expandedLessonId === lesson.id;
                     const ready = Boolean(lesson.video_url) || lesson.is_published;
                     return (
-                      <div key={lesson.id} className="border border-[#d1d2e0] border-b-0 last:border-b first:rounded-t-md last:rounded-b-md">
+                      <div
+                        key={lesson.id}
+                        className="border border-[#d1d2e0] border-b-0 first:rounded-t-md last:rounded-b-md last:border-b"
+                      >
                         <button
                           type="button"
                           onClick={() => openLesson(lesson)}
@@ -480,9 +737,25 @@ export function CourseContentEditor() {
                           </span>
                           <PlayCircle className="h-4 w-4 shrink-0 text-[#6a6f73]" />
                           <span className="min-w-0 flex-1 truncate text-sm text-[#2d2f31]">{lesson.title}</span>
-                          {lesson.is_published && (
+                          <span
+                            className={cn(
+                              "rounded border px-2 py-0.5 text-[11px] font-semibold",
+                              lesson.is_published
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+                                : "border-border bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {lesson.is_published
+                              ? locale === "ar"
+                                ? "منشور"
+                                : "Published"
+                              : locale === "ar"
+                                ? "مسودة"
+                                : "Draft"}
+                          </span>
+                          {lesson.is_preview && (
                             <span className="rounded border border-[#a435f0]/30 bg-[#a435f0]/10 px-2 py-0.5 text-[11px] font-semibold text-[#5624d0]">
-                              {locale === "ar" ? "معاينة مفعّلة" : "Preview enabled"}
+                              {locale === "ar" ? "بريفيو" : "Preview"}
                             </span>
                           )}
                           {open ? (
@@ -504,7 +777,9 @@ export function CourseContentEditor() {
                                 />
                               </div>
                               <div>
-                                <Label>{locale === "ar" ? "رابط الفيديو (يوتيوب أو درايف)" : "Video link (YouTube or Drive)"}</Label>
+                                <Label>
+                                  {locale === "ar" ? "رابط الفيديو (يوتيوب أو درايف)" : "Video link (YouTube or Drive)"}
+                                </Label>
                                 <Input
                                   className="mt-1 bg-white"
                                   type="url"
@@ -524,14 +799,26 @@ export function CourseContentEditor() {
                               </div>
                             </div>
 
-                            <label className="inline-flex items-center gap-2 text-sm text-[#2d2f31]">
-                              <input
-                                type="checkbox"
-                                checked={lessonDraft.is_published}
-                                onChange={(event) => updateDraft({ is_published: event.target.checked })}
-                              />
-                              {locale === "ar" ? "تفعيل المعاينة / النشر" : "Enable preview / publish"}
-                            </label>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                              <label className="inline-flex items-center gap-2 text-sm text-[#2d2f31]">
+                                <input
+                                  type="checkbox"
+                                  checked={lessonDraft.is_published}
+                                  onChange={(event) => updateDraft({ is_published: event.target.checked })}
+                                />
+                                {locale === "ar" ? "منشور (يظهر في صفحة الكورس)" : "Published (shows on course page)"}
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-sm text-[#2d2f31]">
+                                <input
+                                  type="checkbox"
+                                  checked={lessonDraft.is_preview}
+                                  onChange={(event) => updateDraft({ is_preview: event.target.checked })}
+                                />
+                                {locale === "ar"
+                                  ? "بريفيو مجاني (ظاهر لغير الطلاب)"
+                                  : "Free preview (visible to non-students)"}
+                              </label>
+                            </div>
 
                             <LessonResourcesPanel lessonId={lesson.id} chapterId={chapter.id} />
 
@@ -541,10 +828,21 @@ export function CourseContentEditor() {
                                 {t.admin.delete}
                               </Button>
                               <div className="flex gap-2">
-                                <Button type="button" variant="outline" size="sm" disabled={!lessonDirty || savingLesson} onClick={cancelLessonEdit}>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!lessonDirty || savingLesson}
+                                  onClick={cancelLessonEdit}
+                                >
                                   {t.admin.cancel}
                                 </Button>
-                                <Button type="button" size="sm" disabled={!lessonDirty || savingLesson} onClick={() => void saveLessonEdit()}>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={!lessonDirty || savingLesson}
+                                  onClick={() => void saveLessonEdit()}
+                                >
                                   {savingLesson ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : null}
                                   {t.admin.save}
                                 </Button>

@@ -3,16 +3,20 @@ import type { Locale } from "@/i18n/translations";
 const brandBase = {
   monogram: "KN",
   email: "karimnouh112@gmail.com",
-  phone: "+201273091969",
+  // Team WhatsApp inbox — lead form messages open a chat with this number.
+  phone: "+201132680858",
   youtube: "https://www.youtube.com/@kariimnabiil",
   linkedin: "https://www.linkedin.com/in/kariim-nabiil/",
+  tiktok: "https://www.tiktok.com/@kariimnabiil",
+  instagram: "https://www.instagram.com/kariim_nabiil/",
   coursePath: "/courses/agentic-ai-engineering",
   salesCourseUrl: "https://www.udemy.com/course/ai-sales-automation-using-n8n/",
   n8nPlaylistUrl: "https://www.youtube.com/playlist?list=PLLHIYYlcgk6KN58UnPm8q1btNHLDJlYto",
   advancedN8nPlaylistUrl: "https://www.youtube.com/playlist?list=PLLHIYYlcgk6KUa7VI3Fvi1Tuy4FsR27fd",
   enrollUrl: import.meta.env.VITE_COURSE_ENROLL_URL || "/enroll",
   contactUrl: "/contact",
-  whatsappUrl: "https://wa.me/message/3J6SMTFRTNR7I1",
+  // Phone-based link so ?text= prefills work (wa.me/message/... short links ignore text).
+  whatsappUrl: "https://wa.me/201132680858",
 } as const;
 
 export const BRAND = {

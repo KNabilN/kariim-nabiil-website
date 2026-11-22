@@ -17,6 +17,91 @@ export interface Project {
 
 export const defaultProjects: Project[] = [
   {
+    id: "uae-1",
+    title: "Finance Agentic System",
+    description:
+      "Text-to-SQL agents that help finance teams chat with their databases to enhance productivity and analysis capabilities.",
+    fullDescription:
+      "Built a production Text-to-SQL agentic system for a +$100B client in the UAE. Finance teams can ask natural-language questions and get accurate answers from enterprise databases — improving analysis speed and day-to-day productivity without writing SQL.",
+    tools: ["LLMs", "Text-to-SQL", "Agentic Workflows", "Enterprise Databases"],
+    domain: "Finance & Agentic AI",
+    country: "United Arab Emirates",
+    highlight: "Main project for a +$100B UAE client",
+    challenges:
+      "Mapping natural language to correct SQL over complex enterprise schemas while keeping answers accurate, auditable, and safe for finance workflows.",
+    results:
+      "Enabled finance teams to query databases conversationally, reducing dependency on analysts for routine questions and accelerating financial analysis.",
+    images: [],
+  },
+  {
+    id: "uae-2",
+    title: "External Chatbot",
+    description:
+      "Conversational AI agent that helps customers get information about services and custom brochures tailored to their needs.",
+    fullDescription:
+      "Designed and deployed an external-facing conversational AI agent for a +$100B UAE client. The agent answers customer questions about services and generates custom brochures matched to each visitor’s needs.",
+    tools: ["Conversational AI", "LLMs", "Content Generation", "Knowledge Base"],
+    domain: "Customer Experience",
+    country: "United Arab Emirates",
+    highlight: "Main project for a +$100B UAE client",
+    challenges:
+      "Keeping answers on-brand and accurate across a large service catalog while personalizing brochure content in real time.",
+    results:
+      "Gave customers instant, guided answers and tailored brochures — reducing wait time for basic inquiries and improving engagement.",
+    images: [],
+  },
+  {
+    id: "uae-3",
+    title: "Custom Agents for Employees",
+    description:
+      "A sophisticated system that lets each employee create custom agents with department-specific tools, then chat with them to get needed data — powered by a dynamic, on-the-fly metadata architecture.",
+    fullDescription:
+      "Built an enterprise employee-agent platform for a +$100B UAE client. Each employee can create custom agents with the tools their department needs, then chat with those agents to retrieve data. The core innovation is a dynamic, on-the-fly system architecture driven by a metadata approach.",
+    tools: ["Multi-Agent Systems", "Metadata Architecture", "Tool Calling", "LLMs"],
+    domain: "Enterprise Agentic Platforms",
+    country: "United Arab Emirates",
+    highlight: "Dynamic on-the-fly metadata architecture · +$100B UAE client",
+    challenges:
+      "Supporting per-employee custom agents safely at scale, with department-scoped tools and a flexible metadata model that configures agents dynamically without redeploying the system.",
+    results:
+      "Employees across departments can spin up tailored agents and get the data they need through chat — without waiting on custom engineering for every use case.",
+    images: [],
+  },
+  {
+    id: "uae-4",
+    title: "Procurement Agentic System",
+    description:
+      "Introduced AI across the full procurement lifecycle — from Policy AI Assistant and SCD generation to PR/PO/invoices assistance, supplier search, and deep evaluation.",
+    fullDescription:
+      "Delivered an end-to-end procurement agentic system for a +$100B UAE client, embedding AI across the procurement lifecycle: Policy AI Assistant, SCD generation, PR/PO/invoices assistance, supplier search, and deep supplier evaluation.",
+    tools: ["Agentic AI", "Document Generation", "Supplier Evaluation", "Enterprise Workflows"],
+    domain: "Procurement & Supply Chain",
+    country: "United Arab Emirates",
+    highlight: "Full procurement lifecycle AI · +$100B UAE client",
+    challenges:
+      "Covering many procurement stages with consistent policy compliance, reliable document generation, and deep supplier evaluation in a complex enterprise process.",
+    results:
+      "Streamlined procurement workflows with AI assistance at every major step — from policy guidance through supplier evaluation — cutting manual effort and cycle time.",
+    images: [],
+  },
+  {
+    id: "uae-5",
+    title: "HR Agentic AI Support System",
+    description:
+      "Agentic system that helps the HR team validate internal employee requests such as sick leave and leave credit.",
+    fullDescription:
+      "Built an HR agentic support system for a +$100B UAE client to help HR validate internal employee requests (e.g. sick leave, leave credit) with consistent policy checks and faster turnaround.",
+    tools: ["Agentic AI", "Policy Validation", "HR Workflows", "LLMs"],
+    domain: "HR & People Operations",
+    country: "United Arab Emirates",
+    highlight: "Main project for a +$100B UAE client",
+    challenges:
+      "Encoding HR policies into reliable agent checks so requests are validated consistently while staying clear and usable for HR staff.",
+    results:
+      "Helped HR process and validate employee requests faster with consistent policy-aligned decisions.",
+    images: [],
+  },
+  {
     id: "1",
     title: "AI Legal Assistant for Qatari Procurement Law",
     description:
@@ -155,6 +240,91 @@ export const defaultProjects: Project[] = [
 ];
 
 export const defaultProjectsAr: Project[] = [
+  {
+    id: "uae-1",
+    title: "نظام مالي وكيلي",
+    description:
+      "وكلاء Text-to-SQL يساعدون فرق المالية على الدردشة مع قواعد بياناتهم لرفع الإنتاجية وقدرات التحليل.",
+    fullDescription:
+      "بنيت نظام Text-to-SQL وكيليًا للإنتاج لعميل بأكثر من 100 مليار دولار في الإمارات. فرق المالية تسأل بلغة طبيعية وتحصل على إجابات دقيقة من قواعد بيانات المؤسسة — بسرعة أعلى ودون كتابة SQL.",
+    tools: ["LLMs", "Text-to-SQL", "Agentic Workflows", "Enterprise Databases"],
+    domain: "المالية والذكاء الاصطناعي الوكيلي",
+    country: "الإمارات العربية المتحدة",
+    highlight: "مشروع رئيسي لعميل إماراتي بأكثر من 100 مليار دولار",
+    challenges:
+      "تحويل اللغة الطبيعية إلى SQL صحيح على مخططات مؤسسية معقّدة مع الحفاظ على الدقة وقابلية التدقيق وأمان سير العمل المالي.",
+    results:
+      "مكّن فرق المالية من الاستعلام عن قواعد البيانات محادثةً، وقلّل الاعتماد على المحللين للأسئلة الروتينية وسرّع التحليل المالي.",
+    images: [],
+  },
+  {
+    id: "uae-2",
+    title: "شات بوت خارجي",
+    description:
+      "وكيل محادثة بالذكاء الاصطناعي يساعد العملاء على معرفة الخدمات والحصول على بروشورات مخصّصة لاحتياجاتهم.",
+    fullDescription:
+      "صمّمت ونشرت وكيل محادثة موجّهًا للعملاء لعميل بأكثر من 100 مليار دولار في الإمارات. يجيب عن أسئلة الخدمات ويولّد بروشورات مخصّصة حسب احتياج كل زائر.",
+    tools: ["Conversational AI", "LLMs", "Content Generation", "Knowledge Base"],
+    domain: "تجربة العملاء",
+    country: "الإمارات العربية المتحدة",
+    highlight: "مشروع رئيسي لعميل إماراتي بأكثر من 100 مليار دولار",
+    challenges:
+      "الحفاظ على إجابات دقيقة ومتوافقة مع العلامة عبر كتالوج خدمات كبير، مع تخصيص محتوى البروشور في الوقت الفعلي.",
+    results:
+      "منح العملاء إجابات فورية موجهة وبروشورات مخصّصة — وقلّل وقت الانتظار للاستفسارات الأساسية وزاد التفاعل.",
+    images: [],
+  },
+  {
+    id: "uae-3",
+    title: "وكلاء مخصّصة للموظفين",
+    description:
+      "نظام متقدم يتيح لكل موظف إنشاء وكلاء مخصّصة بأدوات قسمه ثم الدردشة معها للحصول على البيانات — بهندسة ديناميكية قائمة على البيانات الوصفية.",
+    fullDescription:
+      "بنيت منصة وكلاء للموظفين لعميل بأكثر من 100 مليار دولار في الإمارات. كل موظف ينشئ وكلاء بأدوات قسمه ويتحدث معهم لاسترجاع البيانات. الابتكار في هندسة ديناميكية تعمل أثناء التشغيل بمنهج البيانات الوصفية.",
+    tools: ["Multi-Agent Systems", "Metadata Architecture", "Tool Calling", "LLMs"],
+    domain: "منصات وكيلية للمؤسسات",
+    country: "الإمارات العربية المتحدة",
+    highlight: "هندسة بيانات وصفية ديناميكية · عميل إماراتي +100 مليار دولار",
+    challenges:
+      "دعم وكلاء مخصّصة لكل موظف بأمان وعلى نطاق واسع، مع أدوات محدودة بالقسم ونموذج بيانات وصفية يضبط الوكلاء ديناميكيًا دون إعادة نشر النظام.",
+    results:
+      "الموظفون عبر الأقسام ينشئون وكلاء مخصّصة ويحصلون على البيانات عبر الدردشة — دون انتظار هندسة مخصّصة لكل حالة استخدام.",
+    images: [],
+  },
+  {
+    id: "uae-4",
+    title: "نظام مشتريات وكيلي",
+    description:
+      "أدخلت الذكاء الاصطناعي في دورة المشتريات كاملة — من مساعد السياسات وتوليد SCD إلى مساعدة PR/PO/الفواتير، والبحث عن الموردين والتقييم العميق.",
+    fullDescription:
+      "سلّمت نظام مشتريات وكيلي متكامل لعميل بأكثر من 100 مليار دولار في الإمارات، يغطي دورة المشتريات: مساعد سياسات، توليد SCD، مساعدة طلبات الشراء وأوامر الشراء والفواتير، والبحث عن الموردين وتقييمهم بعمق.",
+    tools: ["Agentic AI", "Document Generation", "Supplier Evaluation", "Enterprise Workflows"],
+    domain: "المشتريات وسلسلة الإمداد",
+    country: "الإمارات العربية المتحدة",
+    highlight: "ذكاء اصطناعي لدورة المشتريات كاملة · عميل إماراتي +100 مليار دولار",
+    challenges:
+      "تغطية مراحل مشتريات متعددة مع التزام ثابت بالسياسات، وتوليد مستندات موثوق، وتقييم مورّدين عميق داخل عملية مؤسسية معقّدة.",
+    results:
+      "بسّط مسارات المشتريات بمساعدة الذكاء الاصطناعي في كل خطوة رئيسية — من الإرشاد بالسياسات إلى تقييم الموردين — وقلّل الجهد اليدوي وزمن الدورة.",
+    images: [],
+  },
+  {
+    id: "uae-5",
+    title: "نظام دعم الموارد البشرية بالذكاء الاصطناعي الوكيلي",
+    description:
+      "نظام وكيلي يساعد فريق الموارد البشرية على التحقق من الطلبات الداخلية للموظفين مثل الإجازة المرضية ورصيد الإجازات.",
+    fullDescription:
+      "بنيت نظام دعم وكيلي للموارد البشرية لعميل بأكثر من 100 مليار دولار في الإمارات للتحقق من طلبات الموظفين الداخلية (مثل الإجازة المرضية ورصيد الإجازات) بفحوصات سياسات متسقة واستجابة أسرع.",
+    tools: ["Agentic AI", "Policy Validation", "HR Workflows", "LLMs"],
+    domain: "الموارد البشرية وعمليات الأفراد",
+    country: "الإمارات العربية المتحدة",
+    highlight: "مشروع رئيسي لعميل إماراتي بأكثر من 100 مليار دولار",
+    challenges:
+      "ترميز سياسات الموارد البشرية في فحوصات وكيل موثوقة بحيث تُتحقق الطلبات باتساق مع بقاء التجربة واضحة لفريق HR.",
+    results:
+      "ساعد الموارد البشرية على معالجة والتحقق من طلبات الموظفين بسرعة أكبر بقرارات متوافقة مع السياسات.",
+    images: [],
+  },
   {
     id: "1",
     title: "مساعد قانوني بالذكاء الاصطناعي لقانون المشتريات القطري",
