@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Star,
   Users,
   X,
   BadgeCheck,
@@ -42,7 +43,10 @@ const navGroups = [
   },
   {
     key: "leads" as const,
-    items: [{ to: "/admin/leads", icon: MessageSquare, labelKey: "navLeads" as const }],
+    items: [
+      { to: "/admin/leads", icon: MessageSquare, labelKey: "navLeads" as const },
+      { to: "/admin/feedback", icon: Star, labelKey: "navFeedback" as const },
+    ],
   },
   {
     key: "lms" as const,

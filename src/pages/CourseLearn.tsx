@@ -6,6 +6,7 @@ import ChapterSidebar from "@/components/course/ChapterSidebar";
 import LessonViewer from "@/components/course/LessonViewer";
 import CertificateActions from "@/components/course/CertificateActions";
 import { type CertificateView } from "@/components/course/CompletionCertificate";
+import CourseFeedbackDialog, { type FeedbackStage } from "@/components/course/CourseFeedbackDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,7 +18,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { clearStudentSession, makeCertificateCode, type StudentSession } from "@/lib/studentSession";
+import {
+  clearStudentSession,
+  makeCertificateCode,
+  writeStudentSession,
+  type StudentSession,
+} from "@/lib/studentSession";
+
+function feedbackDismissKey(courseId: string, stage: FeedbackStage) {
+  return `course_feedback_dismissed_${courseId}_${stage}`;
+}
 
 interface Chapter {
   id: string;
@@ -56,6 +66,9 @@ const CourseLearn = () => {
   const [certificate, setCertificate] = useState<CertificateView | null>(null);
   const [showCertificate, setShowCertificate] = useState(false);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
+  const [submittedFeedbackStages, setSubmittedFeedbackStages] = useState<Set<FeedbackStage>>(new Set());
+  const [feedbackPrompt, setFeedbackPrompt] = useState<FeedbackStage | null>(null);
+  const [pendingCertificate, setPendingCertificate] = useState<CertificateView | null>(null);
 
   const handleAccess = useCallback((session: StudentSession) => {
     setStudent(session);
@@ -159,6 +172,20 @@ const CourseLearn = () => {
       const done = new Set((progress || []).map((row) => row.lesson_id));
       setCompletedLessonIds(done);
 
+      const { data: feedbackRows } = await supabase
+        .from("course_feedback")
+        .select("stage")
+        .eq("student_id", student.id)
+        .eq("course_id", courseId);
+      if (!isCurrent) return;
+      setSubmittedFeedbackStages(
+        new Set(
+          (feedbackRows || [])
+            .map((row) => row.stage)
+            .filter((stage): stage is FeedbackStage => stage === "mid" || stage === "end"),
+        ),
+      );
+
       const firstIncomplete = courseLessons.find((lesson) => !done.has(lesson.id));
       setActiveLessonId(firstIncomplete?.id || courseLessons[0]?.id || null);
       setLoading(false);
@@ -184,18 +211,34 @@ const CourseLearn = () => {
     if (!orderedLessons.every((lesson) => doneIds.has(lesson.id))) return null;
 
     const courseTitle = courses.find((c) => c.course_id === courseId)?.course_title || "Course";
-    const studentName = student.fullName.trim() || student.email;
+
+    // Always use the latest saved profile name from DB (not a stale session value).
+    const { data: profile } = await supabase
+      .from("course_students")
+      .select("full_name, email")
+      .eq("id", student.id)
+      .maybeSingle();
+
+    const studentName = (profile?.full_name || student.fullName || profile?.email || student.email).trim();
+    if (profile?.full_name && profile.full_name !== student.fullName) {
+      const synced = { ...student, fullName: profile.full_name };
+      writeStudentSession(synced);
+      setStudent(synced);
+    }
 
     const { data: existing } = await supabase
       .from("course_certificates")
-      .select("student_name, course_title, certificate_code, issued_at")
+      .select("id, student_name, course_title, certificate_code, issued_at")
       .eq("student_id", student.id)
       .eq("course_id", courseId)
       .maybeSingle();
 
     if (existing) {
+      if (existing.student_name !== studentName) {
+        await supabase.from("course_certificates").update({ student_name: studentName }).eq("id", existing.id);
+      }
       return {
-        studentName: existing.student_name,
+        studentName,
         courseTitle: existing.course_title,
         certificateCode: existing.certificate_code,
         issuedAt: existing.issued_at,
@@ -210,7 +253,11 @@ const CourseLearn = () => {
       certificate_code: makeCertificateCode(),
     };
 
-    const { data, error } = await supabase.from("course_certificates").insert(payload).select("student_name, course_title, certificate_code, issued_at").single();
+    const { data, error } = await supabase
+      .from("course_certificates")
+      .insert(payload)
+      .select("student_name, course_title, certificate_code, issued_at")
+      .single();
     if (error || !data) {
       toast({ title: "Certificate could not be issued", description: error?.message, variant: "destructive" });
       return null;
@@ -222,6 +269,17 @@ const CourseLearn = () => {
       certificateCode: data.certificate_code,
       issuedAt: data.issued_at,
     } satisfies CertificateView;
+  };
+
+  const shouldAskFeedback = (stage: FeedbackStage) => {
+    if (!courseId) return false;
+    if (submittedFeedbackStages.has(stage)) return false;
+    try {
+      if (sessionStorage.getItem(feedbackDismissKey(courseId, stage))) return false;
+    } catch {
+      // ignore
+    }
+    return true;
   };
 
   const completeAndNext = async () => {
@@ -248,20 +306,59 @@ const CourseLearn = () => {
 
     const currentIndex = orderedLessons.findIndex((lesson) => lesson.id === activeLessonId);
     const nextLesson = currentIndex >= 0 ? orderedLessons[currentIndex + 1] : undefined;
+    const doneCount = orderedLessons.filter((lesson) => nextDone.has(lesson.id)).length;
+    const total = orderedLessons.length;
+    const crossedMidpoint = total > 0 && doneCount / total >= 0.5 && (doneCount - (alreadyDone ? 0 : 1)) / total < 0.5;
 
     if (nextLesson) {
       setActiveLessonId(nextLesson.id);
       setCompleting(false);
+      if (crossedMidpoint && shouldAskFeedback("mid")) {
+        setFeedbackPrompt("mid");
+      }
       return;
     }
 
     const cert = await issueCertificateIfDone(nextDone);
     setCompleting(false);
+    if (shouldAskFeedback("end")) {
+      setPendingCertificate(cert);
+      setFeedbackPrompt("end");
+      return;
+    }
+
     if (cert) {
       setCertificate(cert);
       setShowCertificate(true);
       toast({ title: "Congratulations!", description: "You've completed the course. Your certificate is ready." });
     }
+  };
+
+  const revealCertificateIfReady = (cert: CertificateView | null) => {
+    if (!cert) return;
+    setCertificate(cert);
+    setShowCertificate(true);
+    setPendingCertificate(null);
+    toast({ title: "Congratulations!", description: "You've completed the course. Your certificate is ready." });
+  };
+
+  const handleFeedbackClose = () => {
+    if (feedbackPrompt && courseId) {
+      try {
+        sessionStorage.setItem(feedbackDismissKey(courseId, feedbackPrompt), "1");
+      } catch {
+        // ignore
+      }
+    }
+    const stage = feedbackPrompt;
+    setFeedbackPrompt(null);
+    if (stage === "end") revealCertificateIfReady(pendingCertificate);
+  };
+
+  const handleFeedbackSubmitted = (stage: FeedbackStage) => {
+    setSubmittedFeedbackStages((current) => new Set(current).add(stage));
+    setFeedbackPrompt(null);
+    if (stage === "end") revealCertificateIfReady(pendingCertificate);
   };
 
   if (!student) {
@@ -459,6 +556,20 @@ const CourseLearn = () => {
           {certificate && <CertificateActions certificate={certificate} showProfileLink />}
         </DialogContent>
       </Dialog>
+
+      {student && courseId && feedbackPrompt && (
+        <CourseFeedbackDialog
+          open={Boolean(feedbackPrompt)}
+          stage={feedbackPrompt}
+          studentId={student.id}
+          studentName={student.fullName.trim() || student.email}
+          studentEmail={student.email}
+          courseId={courseId}
+          courseTitle={currentCourse?.course_title || "Course"}
+          onClose={handleFeedbackClose}
+          onSubmitted={handleFeedbackSubmitted}
+        />
+      )}
     </div>
   );
 };

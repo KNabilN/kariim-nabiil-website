@@ -195,6 +195,60 @@ export type Database = {
           },
         ]
       }
+      course_feedback: {
+        Row: {
+          comment: string | null
+          course_id: string
+          course_title: string
+          created_at: string
+          id: string
+          rating: number
+          stage: string
+          student_email: string
+          student_id: string
+          student_name: string
+        }
+        Insert: {
+          comment?: string | null
+          course_id: string
+          course_title: string
+          created_at?: string
+          id?: string
+          rating: number
+          stage: string
+          student_email: string
+          student_id: string
+          student_name: string
+        }
+        Update: {
+          comment?: string | null
+          course_id?: string
+          course_title?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          stage?: string
+          student_email?: string
+          student_id?: string
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_feedback_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "paid_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_feedback_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "course_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_student_access: {
         Row: {
           course_id: string

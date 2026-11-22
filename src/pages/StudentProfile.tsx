@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Award, Loader2, Save, User } from "lucide-react";
 import DeviceGate from "@/components/course/DeviceGate";
@@ -40,6 +40,25 @@ export default function StudentProfile() {
     let mounted = true;
     const load = async () => {
       setLoading(true);
+
+      const { data: profile } = await supabase
+        .from("course_students")
+        .select("id, email, full_name")
+        .eq("id", student.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+      if (profile) {
+        const synced: StudentSession = {
+          id: profile.id,
+          email: profile.email,
+          fullName: profile.full_name || "",
+        };
+        writeStudentSession(synced);
+        setStudent(synced);
+        setName(synced.fullName);
+      }
+
       const { data, error } = await supabase
         .from("course_certificates")
         .select("id, course_id, student_name, course_title, certificate_code, issued_at")
@@ -67,9 +86,10 @@ export default function StudentProfile() {
     return () => {
       mounted = false;
     };
-  }, [student]);
+  }, [student?.id]);
 
-  const saveName = async () => {
+  const saveName = async (event?: FormEvent) => {
+    event?.preventDefault();
     if (!student) return;
     const nextName = name.trim();
     if (!nextName) {
@@ -77,15 +97,36 @@ export default function StudentProfile() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("course_students").update({ full_name: nextName }).eq("id", student.id);
-    if (error) {
-      toast({ title: "Could not update name", description: error.message, variant: "destructive" });
+
+    const { data, error } = await supabase
+      .from("course_students")
+      .update({ full_name: nextName })
+      .eq("id", student.id)
+      .select("id, email, full_name")
+      .maybeSingle();
+
+    if (error || !data) {
+      toast({
+        title: "Could not update name",
+        description: error?.message || "Update was blocked. Run the latest student-name migration in Supabase.",
+        variant: "destructive",
+      });
       setSaving(false);
       return;
     }
-    const nextSession = { ...student, fullName: nextName };
+
+    // Keep certificate names in sync with the profile name.
+    await supabase.from("course_certificates").update({ student_name: nextName }).eq("student_id", student.id);
+
+    const nextSession: StudentSession = {
+      id: data.id,
+      email: data.email,
+      fullName: data.full_name || nextName,
+    };
     writeStudentSession(nextSession);
     setStudent(nextSession);
+    setName(nextSession.fullName);
+    setCerts((current) => current.map((cert) => ({ ...cert, studentName: nextName })));
     toast({ title: "Name updated" });
     setSaving(false);
   };
@@ -96,9 +137,12 @@ export default function StudentProfile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border/50 px-6 py-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <Link to="/course/learn" className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground">
+      <nav className="border-b border-border/50">
+        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
+          <Link
+            to="/course/learn"
+            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" />
             My courses
           </Link>
@@ -115,31 +159,40 @@ export default function StudentProfile() {
         </div>
       </nav>
 
-      <div className="container mx-auto max-w-3xl space-y-8 px-6 py-10">
+      <div className="container mx-auto max-w-2xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
         <header>
-          <h1 className="flex items-center gap-2 text-3xl font-bold text-navy">
-            <User className="h-7 w-7 text-primary" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-navy sm:text-3xl">
+            <User className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
             Student profile
           </h1>
-          <p className="mt-2 text-muted-foreground">{student.email}</p>
+          <p className="mt-2 break-all text-sm text-muted-foreground sm:text-base">{student.email}</p>
         </header>
 
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-bold text-navy">Your name</h2>
           <p className="mt-1 text-sm text-muted-foreground">This name appears on your certificates.</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
+
+          <form onSubmit={(event) => void saveName(event)} className="mt-5 space-y-3">
+            <div>
               <Label htmlFor="student-name">Full name</Label>
-              <Input id="student-name" className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                id="student-name"
+                className="mt-1.5 h-11"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                autoComplete="name"
+                required
+              />
             </div>
-            <Button type="button" disabled={saving} onClick={() => void saveName()}>
-              {saving ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <Save className="me-1 h-4 w-4" />}
-              Save
+            <Button type="submit" className="h-11 w-full sm:w-auto sm:min-w-[140px]" disabled={saving}>
+              {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
+              Save name
             </Button>
-          </div>
+          </form>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-bold text-navy">
             <Award className="h-5 w-5 text-primary" />
             Certificates
@@ -155,14 +208,17 @@ export default function StudentProfile() {
           ) : (
             <ul className="mt-4 space-y-3">
               {certs.map((cert) => (
-                <li key={cert.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
-                  <div>
+                <li
+                  key={cert.id}
+                  className="flex flex-col gap-3 rounded-lg border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
                     <p className="font-semibold text-navy">{cert.courseTitle}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(cert.issuedAt).toLocaleDateString()} · {cert.certificateCode}
                     </p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setActiveCert(cert)}>
+                  <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setActiveCert(cert)}>
                     View certificate
                   </Button>
                 </li>

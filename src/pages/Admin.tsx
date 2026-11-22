@@ -3,6 +3,7 @@ import RequireRole from "@/components/auth/RequireRole";
 import AdminShell from "@/components/admin/shell/AdminShell";
 import OverviewPage from "@/pages/admin/OverviewPage";
 import LeadsPage from "@/pages/admin/LeadsPage";
+import FeedbackPage from "@/pages/admin/FeedbackPage";
 import {
   AdminBrandCmsPage,
   AdminCatalogCmsPage,
@@ -33,6 +34,7 @@ export default function Admin() {
             <Route path="gallery" element={<AdminGalleryCmsPage />} />
             <Route path="brand" element={<AdminBrandCmsPage />} />
             <Route path="leads" element={<LeadsPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
             <Route path="lms/courses" element={<AdminPaidCoursesPage />} />
             <Route path="lms/content" element={<AdminContentPage />} />
             <Route path="lms/students" element={<AdminStudentsPage />} />
