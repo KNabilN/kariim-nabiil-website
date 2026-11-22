@@ -212,28 +212,52 @@ export type Database = {
       }
       leads: {
         Row: {
+          company_name: string | null
+          course_id: string | null
+          course_title: string | null
           created_at: string
+          discount_requested: string | null
           email: string
           id: string
           intent: string
+          interest_type: string | null
+          job_title: string | null
+          linkedin: string | null
+          meeting_details: string | null
           name: string
           status: string
           whatsapp: string
         }
         Insert: {
+          company_name?: string | null
+          course_id?: string | null
+          course_title?: string | null
           created_at?: string
+          discount_requested?: string | null
           email: string
           id?: string
           intent: string
+          interest_type?: string | null
+          job_title?: string | null
+          linkedin?: string | null
+          meeting_details?: string | null
           name: string
           status?: string
           whatsapp: string
         }
         Update: {
+          company_name?: string | null
+          course_id?: string | null
+          course_title?: string | null
           created_at?: string
+          discount_requested?: string | null
           email?: string
           id?: string
           intent?: string
+          interest_type?: string | null
+          job_title?: string | null
+          linkedin?: string | null
+          meeting_details?: string | null
           name?: string
           status?: string
           whatsapp?: string

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Linkedin, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ import webSummit from "@/assets/gallery/web-summit-qatar.jpg";
 import arabYouthAward from "@/assets/gallery/arab-youth-award.jpg";
 import speakingStage from "@/assets/gallery/speaking-stage.jpg";
 
+const BIO_PREVIEW_LENGTH = 260;
+
 export default function Index() {
   const { t, locale } = useLanguage();
   const { data: brandCms } = useCmsBrand(locale);
@@ -26,6 +29,10 @@ export default function Index() {
   const courses = coursesCms || getCatalogCourses(locale);
   const experiencePreview = cv.experience.slice(0, 3);
   const heroStats = homeCms?.stats;
+  const [bioExpanded, setBioExpanded] = useState(false);
+  const bioNeedsTruncate = cv.summary.length > BIO_PREVIEW_LENGTH;
+  const bioText =
+    bioExpanded || !bioNeedsTruncate ? cv.summary : `${cv.summary.slice(0, BIO_PREVIEW_LENGTH).trimEnd()}…`;
 
   return (
     <>
@@ -165,7 +172,21 @@ export default function Index() {
           <div className="min-w-0 flex-1 text-center sm:text-start">
             <p className="eyebrow justify-center sm:justify-start">{t.home.instructorEyebrow}</p>
             <h2 className="mt-2 text-2xl font-bold text-navy md:text-3xl">{t.aboutPreview.heading}</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base">{cv.summary.slice(0, 260)}…</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base">
+              {bioText}
+              {bioNeedsTruncate && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => setBioExpanded((open) => !open)}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {bioExpanded ? t.aboutPreview.showLess : t.aboutPreview.readMore}
+                  </button>
+                </>
+              )}
+            </p>
             <p className="mt-2 text-sm font-semibold text-primary">{brand.tagline}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Button asChild size="sm">

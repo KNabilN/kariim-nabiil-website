@@ -41,7 +41,15 @@ export default function CourseAgentic() {
             <span>{course.level}</span>
             <span>{course.language}</span>
             <span className="font-semibold text-white">{brand.studentsLabel}</span>
+            {typeof course.price === "number" && course.price > 0 && (
+              <span className="font-bold text-white">
+                {course.price.toLocaleString(locale === "ar" ? "ar-EG" : "en-EG")} {course.currency || "EGP"}
+              </span>
+            )}
           </div>
+          <p className="mt-4 inline-flex rounded-full bg-blue-500/20 px-3 py-1 text-sm font-semibold text-blue-200">
+            {t.course.studentDiscountBadge}
+          </p>
           <p className="mt-4 text-sm font-medium text-white/85">{brand.philosophy}</p>
         </header>
 

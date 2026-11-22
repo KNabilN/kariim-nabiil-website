@@ -8,9 +8,11 @@ export default function LeadThanks() {
   const { t, locale } = useLanguage();
   const brand = getBrand(locale);
   const [params] = useSearchParams();
-  const intent = params.get("intent") === "contact" ? "contact" : "enroll";
+  const rawIntent = params.get("intent");
+  const intent = rawIntent === "contact" ? "contact" : rawIntent === "aid" ? "aid" : "enroll";
 
-  const heading = intent === "contact" ? t.lead.thanksContact : t.lead.thanksEnroll;
+  const heading =
+    intent === "contact" ? t.lead.thanksContact : intent === "aid" ? t.lead.thanksAid : t.lead.thanksEnroll;
 
   return (
     <section className="section-shell">
@@ -34,12 +36,12 @@ export default function LeadThanks() {
             </Button>
 
             <Button asChild variant="outline" size="lg" className="w-full">
-              <Link to={intent === "enroll" ? brand.coursePath : "/"}>
-                {intent === "enroll" ? t.lead.backToCourse : t.lead.backToHome}
+              <Link to={intent === "contact" ? "/" : brand.coursePath}>
+                {intent === "contact" ? t.lead.backToHome : t.lead.backToCourse}
               </Link>
             </Button>
 
-            {intent === "enroll" && (
+            {(intent === "enroll" || intent === "aid") && (
               <Button asChild variant="ghost" size="lg" className="w-full">
                 <Link to="/">{t.lead.home}</Link>
               </Button>

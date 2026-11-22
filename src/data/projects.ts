@@ -74,7 +74,7 @@ export const defaultProjects: Project[] = [
       "Built an end-to-end reporting platform for 39 branches to record daily sales and generate daily, weekly, and monthly performance reports.",
     fullDescription:
       "Designed and built a comprehensive reporting platform that enables 39 branches to record daily sales data and automatically generates performance reports at daily, weekly, and monthly intervals. The system provides management with real-time visibility into sales performance across all locations.",
-    tools: ["Lovable", "Supabase"],
+    tools: ["React", "Supabase"],
     domain: "Sales Analytics",
     country: "Egypt",
     highlight: "39 branches reporting system",
@@ -142,7 +142,7 @@ export const defaultProjects: Project[] = [
       "Developed an Upwork-style marketplace platform for NGOs in Saudi Arabia to discover and engage qualified service providers.",
     fullDescription:
       "Built a marketplace platform inspired by Upwork, specifically designed for the NGO sector in Saudi Arabia. The platform connects non-governmental organizations with qualified service providers, enabling NGOs to post service requirements, review provider profiles, and manage engagements — all within a streamlined digital workflow tailored to the unique needs of the Saudi NGO ecosystem.",
-    tools: ["Lovable", "Supabase", "Matching Algorithm"],
+    tools: ["React", "Supabase", "Matching Algorithm"],
     domain: "NGO & Marketplace",
     country: "Saudi Arabia",
     highlight: "Upwork-style marketplace tailored for Saudi NGOs",
@@ -213,7 +213,7 @@ export const defaultProjectsAr: Project[] = [
       "بنيت منصة تقارير متكاملة لـ 39 فرعًا لتسجيل المبيعات اليومية وتوليد تقارير أداء يومية وأسبوعية وشهرية.",
     fullDescription:
       "صمّمت وبنيت منصة تقارير شاملة تمكّن 39 فرعًا من تسجيل بيانات المبيعات اليومية وتوليد تقارير أداء تلقائية عبر فترات متعددة مع رؤية فورية للإدارة.",
-    tools: ["Lovable", "Supabase"],
+    tools: ["React", "Supabase"],
     domain: "تحليلات المبيعات",
     country: "مصر",
     highlight: "نظام تقارير لـ 39 فرعًا",
@@ -281,7 +281,7 @@ export const defaultProjectsAr: Project[] = [
       "طورت منصة سوق بأسلوب Upwork للمنظمات غير الربحية في السعودية لاكتشاف والتعاقد مع مقدمي خدمات مؤهلين.",
     fullDescription:
       "بنيت منصة سوق مصممة لقطاع المنظمات غير الربحية في السعودية لربط المنظمات بمقدمي الخدمات وإدارة التعاقدات ضمن مسار رقمي مبسّط.",
-    tools: ["Lovable", "Supabase", "Matching Algorithm"],
+    tools: ["React", "Supabase", "Matching Algorithm"],
     domain: "المنظمات غير الربحية والأسواق",
     country: "السعودية",
     highlight: "سوق بأسلوب Upwork مخصص للمنظمات غير الربحية السعودية",

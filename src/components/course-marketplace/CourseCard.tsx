@@ -35,6 +35,10 @@ export default function CourseCard({ course, className }: CourseCardProps) {
               <Play className="h-3 w-3 fill-current" />
               {t.course.watchNow}
             </span>
+          ) : typeof course.price === "number" && course.price > 0 ? (
+            <span className="text-xs font-bold text-navy">
+              {course.price.toLocaleString()} {course.currency || "EGP"}
+            </span>
           ) : course.external ? (
             <span className="inline-flex items-center gap-1 text-xs font-bold text-primary">
               {t.course.open} <ExternalLink className="h-3 w-3" />

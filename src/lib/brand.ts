@@ -12,7 +12,7 @@ const brandBase = {
   advancedN8nPlaylistUrl: "https://www.youtube.com/playlist?list=PLLHIYYlcgk6KUa7VI3Fvi1Tuy4FsR27fd",
   enrollUrl: import.meta.env.VITE_COURSE_ENROLL_URL || "/enroll",
   contactUrl: "/contact",
-  whatsappUrl: "https://wa.me/97451060697",
+  whatsappUrl: "https://wa.me/message/3J6SMTFRTNR7I1",
 } as const;
 
 export const BRAND = {

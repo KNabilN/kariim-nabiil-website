@@ -124,7 +124,7 @@ const cvEn: CvContent = {
     },
     {
       title: "Rapid Prototyping",
-      items: "Vibe coding (Cursor AI, Lovable), full-stack prototyping, React, TypeScript, fast MVP delivery",
+      items: "Vibe coding (Cursor AI), full-stack prototyping, React, TypeScript, fast MVP delivery",
     },
   ],
   accomplishments: [
@@ -236,7 +236,7 @@ const cvAr: CvContent = {
     },
     {
       title: "النماذج الأولية السريعة",
-      items: "Vibe coding (Cursor AI وLovable)، نماذج أولية كاملة، React وTypeScript، تسليم MVP سريع",
+      items: "Vibe coding (Cursor AI)، نماذج أولية كاملة، React وTypeScript، تسليم MVP سريع",
     },
   ],
   accomplishments: [

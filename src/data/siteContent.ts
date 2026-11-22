@@ -57,9 +57,9 @@ export const defaultCourses: CourseItem[] = [
   {
     id: "1",
     title: "Agentic AI Masterclass",
-    platform: "Lovable",
+    platform: "Website",
     description: "Master the art of building autonomous AI agents that can reason, plan, and execute complex tasks.",
-    link: "https://karim-nabil-agentic-ai.lovable.app",
+    link: "/courses/agentic-ai-engineering",
     features: ["Agent Architecture", "LLM Integration", "Tool Building", "Production Deployment"],
     isFree: false,
   },

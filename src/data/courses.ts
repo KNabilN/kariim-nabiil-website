@@ -20,6 +20,8 @@ export interface CatalogCourse {
   external?: boolean;
   featured?: boolean;
   free?: boolean;
+  price?: number;
+  currency?: string;
   instructor: string;
   level: string;
   language: string;
@@ -66,6 +68,8 @@ const courseSources: CourseSource[] = [
     },
     href: BRAND.coursePath,
     featured: true,
+    price: 3500,
+    currency: "EGP",
     level: {
       en: "Beginner to Intermediate",
       ar: "مبتدئ إلى متوسط",
@@ -274,6 +278,8 @@ function localizeCourse(source: CourseSource, locale: Locale): CatalogCourse {
     external: source.external,
     featured: source.featured,
     free: source.free,
+    price: source.price,
+    currency: source.currency,
     instructor: brand.name,
     level: source.level[locale],
     language: locale === "ar" ? "العربية" : "Arabic",

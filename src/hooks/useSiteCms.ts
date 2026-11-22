@@ -78,6 +78,8 @@ export function useCmsCatalog(locale: Locale) {
           external: item.external ?? staticCourse?.external,
           free: item.free ?? staticCourse?.free,
           featured: item.featured ?? staticCourse?.featured,
+          price: staticCourse?.price,
+          currency: staticCourse?.currency,
           instructor: brand.name,
           level: item.level?.[locale] || item.level?.en || staticCourse?.level || "",
           language: locale === "ar" ? "العربية" : "Arabic",
@@ -126,7 +128,7 @@ export function useCmsGallery(locale: Locale) {
       const remote = await getSiteContent<ReturnType<typeof defaultGalleryCms>>("gallery");
       if (!remote || !Array.isArray(remote) || remote.length === 0) return fallback;
 
-      return [...remote]
+      const mappedRemote = [...remote]
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((item) => {
           const staticItem = fallback.find((f) => f.id === item.id);
@@ -140,6 +142,10 @@ export function useCmsGallery(locale: Locale) {
           };
         })
         .filter((item) => !!item.src);
+
+      const remoteIds = new Set(mappedRemote.map((item) => item.id));
+      const missingDefaults = fallback.filter((item) => !remoteIds.has(item.id));
+      return [...missingDefaults, ...mappedRemote];
     },
     staleTime: 60_000,
   });

@@ -8,6 +8,9 @@ import speakingPanel from "@/assets/gallery/speaking-panel.jpg";
 import arabYouthAward from "@/assets/gallery/arab-youth-award.jpg";
 import stagePresenter from "@/assets/gallery/stage-presenter.jpg";
 import engineeringField from "@/assets/gallery/engineering-field.jpg";
+import tatarstanYouthForum from "@/assets/gallery/tatarstan-youth-forum.png";
+import zagazigTaPortrait from "@/assets/gallery/zagazig-ta-portrait.png";
+import egyptYouthMinister from "@/assets/gallery/egypt-youth-minister.png";
 import speakingStudio from "@/assets/karim-speaking.jpg";
 import studio from "@/assets/karim-studio.jpg";
 
@@ -22,6 +25,54 @@ export interface GalleryItem {
 }
 
 export const galleryItems: GalleryItem[] = [
+  {
+    id: "tatarstan-youth-forum",
+    src: tatarstanYouthForum,
+    alt: {
+      en: "Karim receiving a certificate with the Youth Affairs Minister of the Republic of Tatarstan",
+      ar: "كريم يستلم شهادة مع وزير شؤون الشباب في جمهورية تتارستان",
+    },
+    caption: {
+      en: "I was the entrepreneurship team leader in the Egyptian delegation representing Egypt in the 1st Egyptian and Russian Youth Forum in Moscow and Kazan",
+      ar: "كنت قائد فريق ريادة الأعمال في الوفد المصري الممثل لمصر في المنتدى الشبابي المصري الروسي الأول في موسكو وكازان",
+    },
+    tag: {
+      en: "Youth Affairs Minister of the Republic of Tatarstan",
+      ar: "وزير شؤون الشباب في جمهورية تتارستان",
+    },
+  },
+  {
+    id: "zagazig-ta",
+    src: zagazigTaPortrait,
+    alt: {
+      en: "Karim Nabil — Teaching Assistant at the Faculty of Engineering, Zagazig University",
+      ar: "كريم نبيل — معيد في كلية الهندسة جامعة الزقازيق",
+    },
+    caption: {
+      en: "Officially, a Teaching Assistant at Engineering Faculty, Zagazig University",
+      ar: "بفضل ربي وكرمه على عبده وفقيره، تم تعييني معيداً في كلية الهندسة جامعة الزقازيق",
+    },
+    tag: {
+      en: "Zagazig University",
+      ar: "جامعة الزقازيق",
+    },
+  },
+  {
+    id: "egypt-youth-minister",
+    src: egyptYouthMinister,
+    alt: {
+      en: "Karim honored by H.E. Dr. Ashraf Sobhi, Egypt's Minister of Youth and Sports",
+      ar: "تكريم كريم من معالي د. أشرف صبحي وزير الشباب والرياضة",
+    },
+    caption: {
+      en: "It was my pleasure to be honored by H.E Dr. Ashraf Sobhi, Egypt's Minister of Youth and Sports.",
+      ar: "تشرفت بتكريم معالي د. أشرف صبحي، وزير الشباب والرياضة.",
+    },
+    tag: {
+      en: "Egypt's Minister of Youth and Sports",
+      ar: "وزير الشباب والرياضة",
+    },
+  },
   {
     id: "moscow",
     src: portraitSuit,
