@@ -6,6 +6,8 @@ import { BULK_AGENTIC_EMAILS } from "@/data/bulkAgenticEmails";
 import { supabase } from "@/integrations/supabase/client";
 import { AGENTIC_COURSE_SLUG, AGENTIC_COURSE_TITLE } from "@/lib/ensureAgenticPaidCourse";
 
+const PAYMENTS_CHANGED_EVENT = "payment-submissions-changed";
+
 function nameFromEmail(email: string) {
   const local = email.split("@")[0] || email;
   return local.replace(/[._+-]+/g, " ").replace(/\s+/g, " ").trim() || email;
@@ -51,6 +53,7 @@ export default function BulkAgenticGrant() {
       const chunkSize = 80;
       let upserted = 0;
       let accessRows = 0;
+      let paymentRows = 0;
 
       for (let i = 0; i < emails.length; i += chunkSize) {
         const chunk = emails.slice(i, i + chunkSize);
@@ -67,7 +70,7 @@ export default function BulkAgenticGrant() {
             })),
             { onConflict: "email" },
           )
-          .select("id");
+          .select("id, email, full_name");
 
         if (upsertError) throw new Error(upsertError.message);
         upserted += students?.length || 0;
@@ -79,13 +82,52 @@ export default function BulkAgenticGrant() {
           );
           if (accessError) throw new Error(accessError.message);
           accessRows += students.length;
+
+          const { data: existingPayments, error: existingError } = await supabase
+            .from("payment_submissions")
+            .select("email")
+            .eq("course_id", courseId)
+            .eq("status", "approved")
+            .in(
+              "email",
+              students.map((s) => s.email),
+            );
+          if (existingError) throw new Error(existingError.message);
+
+          const alreadyLogged = new Set(
+            (existingPayments || []).map((row) => row.email.trim().toLowerCase()),
+          );
+          const paymentPayload = students
+            .filter((s) => !alreadyLogged.has(s.email.trim().toLowerCase()))
+            .map((s) => ({
+              email: s.email,
+              full_name: s.full_name || nameFromEmail(s.email),
+              phone: "-",
+              payment_method: "instapay" as const,
+              screenshot_url: "-",
+              status: "approved" as const,
+              amount: null,
+              currency: "EGP",
+              course_id: courseId,
+              reviewed_at: new Date().toISOString(),
+            }));
+
+          if (paymentPayload.length > 0) {
+            const { error: paymentError } = await supabase.from("payment_submissions").insert(paymentPayload);
+            if (paymentError) throw new Error(paymentError.message);
+            paymentRows += paymentPayload.length;
+          }
         }
       }
 
-      setProgress(`Done: ${upserted} students, ${accessRows} access rows`);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event(PAYMENTS_CHANGED_EVENT));
+      }
+
+      setProgress(`Done: ${upserted} students, ${accessRows} access, ${paymentRows} payment records`);
       toast({
         title: "Agentic access granted",
-        description: `${emails.length} emails processed.`,
+        description: `${emails.length} emails processed · ${paymentRows} new payment records.`,
       });
     } catch (error) {
       toast({

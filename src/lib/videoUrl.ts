@@ -14,6 +14,26 @@ function stripWww(hostname: string): string {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
 
+/** Parse YouTube start time from `t` or `start` (supports 1h2m3s / 90 / 90s). */
+function parseYouTubeStartSeconds(raw: string | null): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number(trimmed);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+  }
+
+  const match = trimmed.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/i);
+  if (!match) return null;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  const total = hours * 3600 + minutes * 60 + seconds;
+  return total > 0 ? total : null;
+}
+
 /** Extract a Google Drive file ID from common share/open/uc/file URLs. */
 export function extractGoogleDriveFileId(url: string): string | null {
   try {
@@ -75,9 +95,19 @@ export function getVideoEmbedUrl(url: string): string | null {
       }
     }
 
-    return videoId
-      ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`
-      : null;
+    if (!videoId) return null;
+
+    const embed = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
+    embed.searchParams.set("playsinline", "1");
+    embed.searchParams.set("rel", "0");
+    embed.searchParams.set("modestbranding", "1");
+
+    const start =
+      parseYouTubeStartSeconds(parsed.searchParams.get("start")) ??
+      parseYouTubeStartSeconds(parsed.searchParams.get("t"));
+    if (start) embed.searchParams.set("start", String(start));
+
+    return embed.toString();
   } catch {
     return null;
   }

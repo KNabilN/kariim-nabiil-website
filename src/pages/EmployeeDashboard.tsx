@@ -29,7 +29,7 @@ export default function EmployeeDashboard() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="add">
-                <CourseStudentsSection variant="add" addedBy="team" />
+                <CourseStudentsSection variant="add" addedBy="team" userId={session.user.id} />
               </TabsContent>
               <TabsContent value="students">
                 <CourseStudentsSection variant="list" />

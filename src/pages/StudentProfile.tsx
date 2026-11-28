@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Award, Loader2, Save, User } from "lucide-react";
+import { ArrowLeft, Award, Laptop, Loader2, Save, User } from "lucide-react";
 import DeviceGate from "@/components/course/DeviceGate";
+import StudentDevicesPanel from "@/components/course/StudentDevicesPanel";
 import CertificateActions from "@/components/course/CertificateActions";
 import { type CertificateView } from "@/components/course/CompletionCertificate";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { MAX_STUDENT_DEVICES } from "@/lib/deviceFingerprint";
 import {
   clearStudentSession,
   readStudentSession,
@@ -190,6 +192,26 @@ export default function StudentProfile() {
               Save name
             </Button>
           </form>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-navy">
+            <Laptop className="h-5 w-5 text-primary" />
+            Devices
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You can use up to {MAX_STUDENT_DEVICES} devices. Sign out a device you no longer use to free a slot.
+          </p>
+          <div className="mt-4">
+            <StudentDevicesPanel
+              studentId={student.id}
+              onChanged={({ wasCurrent }) => {
+                if (wasCurrent) {
+                  setStudent(null);
+                }
+              }}
+            />
+          </div>
         </section>
 
         <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">

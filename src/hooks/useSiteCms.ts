@@ -6,9 +6,11 @@ import { getGalleryItems } from "@/data/gallery";
 import { getProjects, type Project } from "@/data/projects";
 import { getBrand } from "@/lib/brand";
 import { getSiteContent } from "@/lib/siteCms";
+import { agenticCourseReviews, normalizeCourseReviews } from "@/data/courseReviews";
 import {
   defaultBrandCms,
   defaultCatalogCms,
+  defaultCourseReviewsCms,
   defaultCvCms,
   defaultGalleryCms,
   defaultHomeCms,
@@ -152,6 +154,19 @@ export function useCmsGallery(locale: Locale) {
       const remoteIds = new Set(mappedRemote.map((item) => item.id));
       const missingDefaults = fallback.filter((item) => !remoteIds.has(item.id));
       return [...missingDefaults, ...mappedRemote];
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useCmsCourseReviews() {
+  return useQuery({
+    queryKey: ["cms", "course_reviews"],
+    queryFn: async () => {
+      const remote = await getSiteContent<ReturnType<typeof defaultCourseReviewsCms>>("course_reviews");
+      const normalized = normalizeCourseReviews(remote);
+      if (normalized.length === 0) return agenticCourseReviews;
+      return normalized;
     },
     staleTime: 60_000,
   });

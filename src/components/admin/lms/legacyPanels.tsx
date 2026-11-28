@@ -12,10 +12,40 @@ import {
   DollarSign, TrendingUp, BookOpen, Pencil, Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import {
+  endOfDay,
+  endOfMonth,
+  format,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { CourseContentEditor } from "@/components/admin/lms/CourseContentEditor";
+
+type PaymentDatePreset = "all" | "today" | "week" | "month" | "last_month" | "custom";
+type PaymentStatusFilter = "all" | "pending" | "approved" | "rejected";
+
+function paymentPresetRange(preset: PaymentDatePreset): { from?: Date; to?: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "today":
+      return { from: startOfDay(now), to: endOfDay(now) };
+    case "week":
+      return { from: startOfWeek(now, { weekStartsOn: 6 }), to: endOfDay(now) };
+    case "month":
+      return { from: startOfMonth(now), to: endOfDay(now) };
+    case "last_month": {
+      const prev = subMonths(now, 1);
+      return { from: startOfMonth(prev), to: endOfMonth(prev) };
+    }
+    default:
+      return {};
+  }
+}
 
 export { CourseContentEditor };
 
@@ -150,15 +180,24 @@ export function PaidCoursesManager() {
   );
 }
 
+const PAYMENTS_CHANGED_EVENT = "payment-submissions-changed";
+
+function notifyPaymentsChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(PAYMENTS_CHANGED_EVENT));
+}
+
 // ─── Course Students Section ──────────────────────────────────────
 type StudentsSectionVariant = "full" | "list" | "add";
 
 export function CourseStudentsSection({
   variant = "full",
   addedBy = "admin",
+  userId,
 }: {
   variant?: StudentsSectionVariant;
   addedBy?: string;
+  userId?: string;
 } = {}) {
   const [students, setStudents] = useState<any[]>([]);
   const [accessMap, setAccessMap] = useState<Record<string, any[]>>({});
@@ -248,27 +287,56 @@ export function CourseStudentsSection({
     }
 
     if (studentData) {
-      await supabase
+      const { error: accessError } = await supabase
         .from("course_student_access")
         .upsert({ student_id: studentData.id, course_id: selectedCourseId }, { onConflict: "student_id,course_id" });
+      if (accessError) {
+        toast({ title: "Student saved but access failed", description: accessError.message, variant: "destructive" });
+        setAddLoading(false);
+        return;
+      }
     }
 
     const trimmedDiscount = discountCode.trim() || null;
+    const parsedAmount = amount.trim() ? Number.parseFloat(amount) : null;
 
-    await supabase.from("payment_submissions").insert({
+    const paymentPayload: Record<string, unknown> = {
       email: trimmedEmail,
       full_name: trimmedName,
       phone: "-",
-      payment_method: "instapay" as any,
+      payment_method: "instapay",
       screenshot_url: "-",
-      status: "approved" as any,
-      amount: amount ? parseFloat(amount) : null,
+      status: "approved",
+      amount: Number.isFinite(parsedAmount) ? parsedAmount : null,
       currency,
-      discount_code: trimmedDiscount,
       course_id: selectedCourseId,
       reviewed_at: new Date().toISOString(),
-    });
+      reviewed_by: userId || null,
+    };
+    if (trimmedDiscount) paymentPayload.discount_code = trimmedDiscount;
 
+    let { error: paymentError } = await supabase.from("payment_submissions").insert(paymentPayload as any);
+    let discountSkipped = false;
+
+    // Remote DB may not have discount_code yet (migration not applied).
+    if (paymentError && /discount_code/i.test(paymentError.message)) {
+      delete paymentPayload.discount_code;
+      ({ error: paymentError } = await supabase.from("payment_submissions").insert(paymentPayload as any));
+      discountSkipped = Boolean(trimmedDiscount) && !paymentError;
+    }
+
+    if (paymentError) {
+      toast({
+        title: "Student added, payment record failed",
+        description: paymentError.message,
+        variant: "destructive",
+      });
+      setAddLoading(false);
+      if (showList) void fetchAll();
+      return;
+    }
+
+    notifyPaymentsChanged();
     setAddLoading(false);
     setAddSuccess(true);
     setLastAddedName(trimmedName);
@@ -280,7 +348,14 @@ export function CourseStudentsSection({
     setTimeout(() => setAddSuccess(false), 2500);
     nameInputRef.current?.focus();
     if (showList) void fetchAll();
-    else toast({ title: "Student added", description: `${trimmedName} can access the course now.` });
+    else {
+      toast({
+        title: "Student added",
+        description: discountSkipped
+          ? `${trimmedName} can access the course. Discount code was not saved — add payment_submissions.discount_code in Supabase.`
+          : `${trimmedName} can access the course now.`,
+      });
+    }
   };
 
   const getCourseNames = (studentId: string) => {
@@ -573,39 +648,94 @@ export function CourseStudentsSection({
 
 // ─── Course Payments Section ──────────────────────────────────────
 export function CoursePaymentsSection({ userId }: { userId: string }) {
+  const { locale } = useLanguage();
+  const isAr = locale === "ar";
   const [payments, setPayments] = useState<any[]>([]);
   const [paidCourses, setPaidCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  // Filters
+  // Filters — default to this month so the dashboard is actionable
+  const initialMonth = paymentPresetRange("month");
   const [filterCourse, setFilterCourse] = useState("");
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [filterStatus, setFilterStatus] = useState<PaymentStatusFilter>("all");
+  const [datePreset, setDatePreset] = useState<PaymentDatePreset>("month");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(initialMonth.from);
+  const [dateTo, setDateTo] = useState<Date | undefined>(initialMonth.to);
   // Course assignment for approval
   const [approvalCourseMap, setApprovalCourseMap] = useState<Record<string, string>>({});
 
-  const fetchAll = async () => {
-    setLoading(true);
+  const applyDatePreset = (preset: PaymentDatePreset) => {
+    setDatePreset(preset);
+    if (preset === "custom") return;
+    const range = paymentPresetRange(preset);
+    setDateFrom(range.from);
+    setDateTo(range.to);
+  };
+
+  const setCustomFrom = (date: Date | undefined) => {
+    setDatePreset("custom");
+    setDateFrom(date);
+  };
+
+  const setCustomTo = (date: Date | undefined) => {
+    setDatePreset("custom");
+    setDateTo(date);
+  };
+
+  const clearFilters = () => {
+    setFilterCourse("");
+    setFilterStatus("all");
+    applyDatePreset("all");
+  };
+
+  const fetchAll = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     const [paymentsRes, coursesRes] = await Promise.all([
       supabase.from("payment_submissions").select("*").order("created_at", { ascending: false }),
       supabase.from("paid_courses").select("*").order("title"),
     ]);
     setPayments(paymentsRes.data || []);
     setPaidCourses(coursesRes.data || []);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    void fetchAll();
+
+    const refresh = () => void fetchAll({ silent: true });
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    window.addEventListener("focus", refresh);
+    window.addEventListener(PAYMENTS_CHANGED_EVENT, refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const intervalId = window.setInterval(refresh, 20_000);
+
+    const channel = supabase
+      .channel(`payment_submissions_${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payment_submissions" }, refresh)
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(PAYMENTS_CHANGED_EVENT, refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
+      void supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
       const matchesCourse = !filterCourse || p.course_id === filterCourse;
+      const matchesStatus = filterStatus === "all" || p.status === filterStatus;
       const pDate = new Date(p.created_at);
-      const matchesFrom = !dateFrom || pDate >= dateFrom;
-      const matchesTo = !dateTo || pDate <= new Date(dateTo.getTime() + 86400000);
-      return matchesCourse && matchesFrom && matchesTo;
+      const matchesFrom = !dateFrom || pDate >= startOfDay(dateFrom);
+      const matchesTo = !dateTo || pDate <= endOfDay(dateTo);
+      return matchesCourse && matchesStatus && matchesFrom && matchesTo;
     });
-  }, [payments, filterCourse, dateFrom, dateTo]);
+  }, [payments, filterCourse, filterStatus, dateFrom, dateTo]);
 
   const approvedPayments = useMemo(() => filteredPayments.filter(p => p.status === "approved"), [filteredPayments]);
   const revenueByCurrency = useMemo(() => {
@@ -651,7 +781,8 @@ export function CoursePaymentsSection({ userId }: { userId: string }) {
       }
     }
     setActionLoading(null);
-    fetchAll();
+    notifyPaymentsChanged();
+    void fetchAll();
   };
 
   const getCourseName = (courseId: string | null) => {
@@ -692,38 +823,101 @@ export function CoursePaymentsSection({ userId }: { userId: string }) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <select value={filterCourse} onChange={(e) => setFilterCourse(e.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-          <option value="">All Courses</option>
-          {paidCourses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-        </select>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateFrom ? format(dateFrom, "PP") : "From date"}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["all", isAr ? "الكل" : "All time"],
+              ["today", isAr ? "اليوم" : "Today"],
+              ["week", isAr ? "هذا الأسبوع" : "This week"],
+              ["month", isAr ? "هذا الشهر" : "This month"],
+              ["last_month", isAr ? "الشهر الماضي" : "Last month"],
+              ["custom", isAr ? "تخصيص" : "Custom"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={datePreset === value ? "default" : "outline"}
+              className="rounded-full"
+              onClick={() => applyDatePreset(value)}
+            >
+              {label}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} className={cn("p-3 pointer-events-auto")} />
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateTo ? format(dateTo, "PP") : "To date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} className={cn("p-3 pointer-events-auto")} />
-          </PopoverContent>
-        </Popover>
-        {(filterCourse || dateFrom || dateTo) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterCourse(""); setDateFrom(undefined); setDateTo(undefined); }}>
-            Clear filters
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" size="sm" onClick={() => void fetchAll({ silent: true })}>
+            Refresh
           </Button>
-        )}
+          <select
+            value={filterCourse}
+            onChange={(e) => setFilterCourse(e.target.value)}
+            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="">{isAr ? "كل الكورسات" : "All Courses"}</option>
+            {paidCourses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as PaymentStatusFilter)}
+            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">{isAr ? "كل الحالات" : "All statuses"}</option>
+            <option value="pending">{isAr ? "قيد المراجعة" : "Pending"}</option>
+            <option value="approved">{isAr ? "مقبول" : "Approved"}</option>
+            <option value="rejected">{isAr ? "مرفوض" : "Rejected"}</option>
+          </select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn("w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateFrom ? format(dateFrom, "PP") : isAr ? "من تاريخ" : "From date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFrom}
+                onSelect={setCustomFrom}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn("w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "PP") : isAr ? "إلى تاريخ" : "To date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setCustomTo} className={cn("p-3 pointer-events-auto")} />
+            </PopoverContent>
+          </Popover>
+          {(filterCourse || filterStatus !== "all" || datePreset !== "all") && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              {isAr ? "مسح الفلاتر" : "Clear filters"}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {isAr
+            ? `${filteredPayments.length} نتيجة · الإحصائيات فوق بتعكس الفلتر الحالي`
+            : `${filteredPayments.length} results · Stats above follow the current filters`}
+        </p>
       </div>
 
       {filteredPayments.length === 0 ? (

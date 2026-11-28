@@ -1,5 +1,6 @@
 import { BRAND } from "@/lib/brand";
 import { getCatalogCourses } from "@/data/courses";
+import { agenticCourseReviews } from "@/data/courseReviews";
 import { getCv } from "@/data/cv";
 import { defaultProjects, defaultProjectsAr } from "@/data/projects";
 import { galleryItems } from "@/data/gallery";
@@ -109,5 +110,14 @@ export function defaultGalleryCms() {
     alt: item.alt,
     caption: item.caption,
     tag: item.tag,
+  }));
+}
+
+export function defaultCourseReviewsCms() {
+  return agenticCourseReviews.map((review) => ({
+    id: review.id,
+    name: review.name,
+    quote: review.quote,
+    lang: review.lang,
   }));
 }

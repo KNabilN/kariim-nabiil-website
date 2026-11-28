@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Circle, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ const ChapterSidebar = ({
   fillHeight = false,
 }: ChapterSidebarProps) => {
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => new Set());
+  const activeLessonRef = useRef<HTMLButtonElement | null>(null);
   const chapterIds = chapters.map((chapter) => chapter.id).join(",");
   const activeChapterId = chapters.find((chapter) => chapter.lessons.some((lesson) => lesson.id === activeLessonId))?.id;
   const totalLessons = chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0);
@@ -53,6 +54,14 @@ const ChapterSidebar = ({
     }
     setExpandedChapters(new Set(activeChapterId ? [activeChapterId] : [ids[0]]));
   }, [chapterIds, activeChapterId]);
+
+  useEffect(() => {
+    if (!activeLessonId || !fillHeight) return;
+    const frame = window.requestAnimationFrame(() => {
+      activeLessonRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeLessonId, fillHeight, expandedChapters]);
 
   return (
     <div
@@ -105,7 +114,7 @@ const ChapterSidebar = ({
                       return next;
                     })
                   }
-                  className="h-auto min-h-10 w-full justify-between gap-2 whitespace-normal px-3 py-2 text-left"
+                  className="h-auto min-h-12 w-full justify-between gap-2 whitespace-normal px-3 py-2.5 text-left"
                 >
                   <span className="min-w-0 flex-1 break-words">
                     <span className="me-2 text-muted-foreground">{chapterIndex + 1}.</span>
@@ -121,17 +130,19 @@ const ChapterSidebar = ({
                     ) : (
                       chapter.lessons.map((lesson, lessonIndex) => {
                         const done = completedLessonIds.has(lesson.id);
+                        const isActive = activeLessonId === lesson.id;
                         return (
                           <Button
                             key={lesson.id}
-                            variant={activeLessonId === lesson.id ? "secondary" : "ghost"}
+                            ref={isActive ? activeLessonRef : undefined}
+                            variant={isActive ? "secondary" : "ghost"}
                             onClick={() => onSelect(lesson.id)}
-                            aria-current={activeLessonId === lesson.id ? "true" : undefined}
-                            className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal px-3 py-2 text-left"
+                            aria-current={isActive ? "true" : undefined}
+                            className="h-auto min-h-12 w-full justify-start gap-2 whitespace-normal px-3 py-2.5 text-left"
                           >
                             {done ? (
                               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                            ) : activeLessonId === lesson.id ? (
+                            ) : isActive ? (
                               <PlayCircle className="h-4 w-4 shrink-0 text-primary" />
                             ) : (
                               <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />

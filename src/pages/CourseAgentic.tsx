@@ -1,4 +1,5 @@
 import CourseCurriculum from "@/components/course-marketplace/CourseCurriculum";
+import CourseReviews from "@/components/course-marketplace/CourseReviews";
 import StickyEnrollCard from "@/components/course-marketplace/StickyEnrollCard";
 import WhatYouLearn from "@/components/course-marketplace/WhatYouLearn";
 import { getCourseById } from "@/data/courses";
@@ -72,6 +73,8 @@ export default function CourseAgentic() {
           {course.learnings && <WhatYouLearn items={course.learnings} />}
 
           {modules.length > 0 && <CourseCurriculum modules={modules} />}
+
+          <CourseReviews />
         </div>
       </div>
 

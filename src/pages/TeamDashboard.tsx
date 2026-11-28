@@ -38,7 +38,7 @@ export default function TeamDashboard() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="add">
-                <CourseStudentsSection variant="add" addedBy="team" />
+                <CourseStudentsSection variant="add" addedBy="team" userId={session.user.id} />
                 <BulkAgenticGrant />
               </TabsContent>
               <TabsContent value="students">

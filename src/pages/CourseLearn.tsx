@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
   clearStudentSession,
@@ -53,13 +54,12 @@ interface CourseAccess {
 }
 
 const CourseLearn = () => {
-  const { courseId } = useParams<{ courseId?: string }>();
+  const { courseId, lessonId } = useParams<{ courseId?: string; lessonId?: string }>();
   const navigate = useNavigate();
   const [student, setStudent] = useState<StudentSession | null>(null);
   const [courses, setCourses] = useState<CourseAccess[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -73,6 +73,14 @@ const CourseLearn = () => {
   const handleAccess = useCallback((session: StudentSession) => {
     setStudent(session);
   }, []);
+
+  const selectLesson = useCallback(
+    (id: string, options?: { replace?: boolean }) => {
+      if (!courseId) return;
+      navigate(`/course/learn/${courseId}/${id}`, { replace: options?.replace });
+    },
+    [courseId, navigate],
+  );
 
   useEffect(() => {
     if (!student) return;
@@ -118,7 +126,6 @@ const CourseLearn = () => {
     if (!courses.some((course) => course.course_id === courseId)) {
       setChapters([]);
       setLessons([]);
-      setActiveLessonId(null);
       setCompletedLessonIds(new Set());
       setLoading(false);
       return;
@@ -136,7 +143,6 @@ const CourseLearn = () => {
       if (error) {
         setChapters([]);
         setLessons([]);
-        setActiveLessonId(null);
         setLoading(false);
         return;
       }
@@ -145,7 +151,6 @@ const CourseLearn = () => {
       setChapters(chaps);
       if (chaps.length === 0) {
         setLessons([]);
-        setActiveLessonId(null);
         setLoading(false);
         return;
       }
@@ -186,8 +191,6 @@ const CourseLearn = () => {
         ),
       );
 
-      const firstIncomplete = courseLessons.find((lesson) => !done.has(lesson.id));
-      setActiveLessonId(firstIncomplete?.id || courseLessons[0]?.id || null);
       setLoading(false);
     };
     void fetchChapters();
@@ -204,6 +207,26 @@ const CourseLearn = () => {
       return a.order_index - b.order_index;
     });
   }, [chapters, lessons]);
+
+  // Resolve / restore active lesson from URL
+  useEffect(() => {
+    if (!courseId || orderedLessons.length === 0) return;
+
+    if (lessonId && orderedLessons.some((lesson) => lesson.id === lessonId)) {
+      return;
+    }
+
+    const firstIncomplete = orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id));
+    const fallbackId = firstIncomplete?.id || orderedLessons[0]?.id;
+    if (fallbackId) {
+      selectLesson(fallbackId, { replace: true });
+    }
+  }, [courseId, lessonId, orderedLessons, completedLessonIds, selectLesson]);
+
+  useEffect(() => {
+    if (!lessonId) return;
+    window.scrollTo({ top: 0 });
+  }, [lessonId]);
 
   const issueCertificateIfDone = async (doneIds: Set<string>) => {
     if (!student || !courseId) return null;
@@ -282,45 +305,20 @@ const CourseLearn = () => {
     return true;
   };
 
-  const completeAndNext = async () => {
-    if (!student || !courseId || !activeLessonId) return;
-    setCompleting(true);
-
-    const alreadyDone = completedLessonIds.has(activeLessonId);
-    let nextDone = new Set(completedLessonIds);
-
-    if (!alreadyDone) {
-      const { error } = await supabase.from("lesson_progress").insert({
-        student_id: student.id,
-        course_id: courseId,
-        lesson_id: activeLessonId,
-      });
-      if (error && !/duplicate|unique/i.test(error.message)) {
-        toast({ title: "Could not save progress", description: error.message, variant: "destructive" });
-        setCompleting(false);
-        return;
-      }
-      nextDone = new Set(completedLessonIds).add(activeLessonId);
-      setCompletedLessonIds(nextDone);
-    }
-
-    const currentIndex = orderedLessons.findIndex((lesson) => lesson.id === activeLessonId);
-    const nextLesson = currentIndex >= 0 ? orderedLessons[currentIndex + 1] : undefined;
-    const doneCount = orderedLessons.filter((lesson) => nextDone.has(lesson.id)).length;
+  const afterProgressChange = async (nextDone: Set<string>, options?: { previousDoneCount?: number }) => {
     const total = orderedLessons.length;
-    const crossedMidpoint = total > 0 && doneCount / total >= 0.5 && (doneCount - (alreadyDone ? 0 : 1)) / total < 0.5;
+    const doneCount = orderedLessons.filter((lesson) => nextDone.has(lesson.id)).length;
+    const previousDoneCount = options?.previousDoneCount ?? doneCount;
+    const crossedMidpoint = total > 0 && doneCount / total >= 0.5 && previousDoneCount / total < 0.5;
+    const courseComplete = total > 0 && doneCount === total;
 
-    if (nextLesson) {
-      setActiveLessonId(nextLesson.id);
-      setCompleting(false);
-      if (crossedMidpoint && shouldAskFeedback("mid")) {
-        setFeedbackPrompt("mid");
-      }
-      return;
+    if (crossedMidpoint && shouldAskFeedback("mid")) {
+      setFeedbackPrompt("mid");
     }
+
+    if (!courseComplete) return;
 
     const cert = await issueCertificateIfDone(nextDone);
-    setCompleting(false);
     if (shouldAskFeedback("end")) {
       setPendingCertificate(cert);
       setFeedbackPrompt("end");
@@ -331,6 +329,99 @@ const CourseLearn = () => {
       setCertificate(cert);
       setShowCertificate(true);
       toast({ title: "Congratulations!", description: "You've completed the course. Your certificate is ready." });
+    }
+  };
+
+  const toggleComplete = async () => {
+    if (!student || !courseId || !lessonId) return;
+    setCompleting(true);
+
+    const alreadyDone = completedLessonIds.has(lessonId);
+    const previousDoneCount = orderedLessons.filter((lesson) => completedLessonIds.has(lesson.id)).length;
+
+    if (alreadyDone) {
+      const { error } = await supabase
+        .from("lesson_progress")
+        .delete()
+        .eq("student_id", student.id)
+        .eq("course_id", courseId)
+        .eq("lesson_id", lessonId);
+      if (error) {
+        toast({ title: "Could not update progress", description: error.message, variant: "destructive" });
+        setCompleting(false);
+        return;
+      }
+      const nextDone = new Set(completedLessonIds);
+      nextDone.delete(lessonId);
+      setCompletedLessonIds(nextDone);
+      setCompleting(false);
+      return;
+    }
+
+    const { error } = await supabase.from("lesson_progress").insert({
+      student_id: student.id,
+      course_id: courseId,
+      lesson_id: lessonId,
+    });
+    if (error && !/duplicate|unique/i.test(error.message)) {
+      toast({ title: "Could not save progress", description: error.message, variant: "destructive" });
+      setCompleting(false);
+      return;
+    }
+
+    const nextDone = new Set(completedLessonIds).add(lessonId);
+    setCompletedLessonIds(nextDone);
+    setCompleting(false);
+    await afterProgressChange(nextDone, { previousDoneCount });
+  };
+
+  const markLessonComplete = async (targetLessonId: string) => {
+    if (!student || !courseId) return;
+    if (completedLessonIds.has(targetLessonId)) return;
+
+    const previousDoneCount = orderedLessons.filter((lesson) => completedLessonIds.has(lesson.id)).length;
+    const { error } = await supabase.from("lesson_progress").insert({
+      student_id: student.id,
+      course_id: courseId,
+      lesson_id: targetLessonId,
+    });
+    if (error && !/duplicate|unique/i.test(error.message)) {
+      toast({ title: "Could not save progress", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const nextDone = new Set(completedLessonIds).add(targetLessonId);
+    setCompletedLessonIds(nextDone);
+    await afterProgressChange(nextDone, { previousDoneCount });
+  };
+
+  const goPrev = () => {
+    if (!lessonId) return;
+    const currentIndex = orderedLessons.findIndex((lesson) => lesson.id === lessonId);
+    const prevLesson = currentIndex > 0 ? orderedLessons[currentIndex - 1] : undefined;
+    if (prevLesson) selectLesson(prevLesson.id);
+  };
+
+  const goNext = () => {
+    if (!lessonId) return;
+    const currentIndex = orderedLessons.findIndex((lesson) => lesson.id === lessonId);
+    const nextLesson = currentIndex >= 0 ? orderedLessons[currentIndex + 1] : undefined;
+    if (!nextLesson) return;
+
+    const leavingIncomplete = !completedLessonIds.has(lessonId);
+    selectLesson(nextLesson.id);
+
+    if (leavingIncomplete) {
+      const leftLessonId = lessonId;
+      toast({
+        title: "Skipped without completing",
+        description: "You can mark the previous lesson complete anytime.",
+        action: (
+          <ToastAction altText="Mark previous lesson complete" onClick={() => void markLessonComplete(leftLessonId)}>
+            Mark complete
+          </ToastAction>
+        ),
+      });
     }
   };
 
@@ -365,15 +456,20 @@ const CourseLearn = () => {
     return <DeviceGate onAccess={handleAccess} />;
   }
 
-  const activeLesson = lessons.find((lesson) => lesson.id === activeLessonId);
+  const activeLesson = lessons.find((lesson) => lesson.id === lessonId);
   const chaptersWithLessons = chapters.map((chapter) => ({
     ...chapter,
     lessons: lessons.filter((lesson) => lesson.chapter_id === chapter.id),
   }));
   const currentCourse = courses.find((c) => c.course_id === courseId);
   const hasCourseAccess = !courseId || courses.some((course) => course.course_id === courseId);
-  const activeIndex = orderedLessons.findIndex((lesson) => lesson.id === activeLessonId);
+  const activeIndex = orderedLessons.findIndex((lesson) => lesson.id === lessonId);
+  const hasPrev = activeIndex > 0;
   const hasNext = activeIndex >= 0 && activeIndex < orderedLessons.length - 1;
+  const activeChapter = activeLesson ? chapters.find((chapter) => chapter.id === activeLesson.chapter_id) : undefined;
+  const activeChapterIndex = activeChapter ? chapters.findIndex((chapter) => chapter.id === activeChapter.id) : -1;
+  const chapterLabel =
+    activeChapter && activeChapterIndex >= 0 ? `Chapter ${activeChapterIndex + 1}: ${activeChapter.title}` : "";
 
   if (!courseId && courses.length > 0) {
     return (
@@ -417,11 +513,12 @@ const CourseLearn = () => {
 
   const totalLessonCount = lessons.length;
   const completedCount = [...completedLessonIds].filter((id) => lessons.some((lesson) => lesson.id === id)).length;
+  const nextLessonTitle = hasNext ? orderedLessons[activeIndex + 1]?.title : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-30 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-        <div className="container mx-auto flex items-center gap-2 px-4 py-3 sm:px-6">
+    <div className="min-h-screen bg-background" style={{ ["--nav-h" as string]: "3rem" }}>
+      <nav className="sticky top-0 z-30 h-12 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 phoneLandscape:hidden">
+        <div className="container mx-auto flex h-full items-center gap-2 px-4 sm:px-6">
           <Link
             to={courses.length > 1 ? "/course/learn" : "/"}
             className="flex shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
@@ -432,11 +529,11 @@ const CourseLearn = () => {
           </Link>
           <div className="flex min-w-0 flex-1 items-center justify-center gap-2 px-1 text-primary">
             <BookOpen className="hidden h-4 w-4 shrink-0 sm:block" />
-            <span className="truncate text-sm font-semibold sm:text-base">{currentCourse?.course_title || "Course"}</span>
+            <span className="truncate text-sm font-semibold">{currentCourse?.course_title || "Course"}</span>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Account menu">
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" aria-label="Account menu">
                 <User className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -481,17 +578,18 @@ const CourseLearn = () => {
           <p>No lessons have been published yet.</p>
         </div>
       ) : (
-        <div className="container mx-auto px-4 py-4 sm:px-6 lg:flex lg:gap-8 lg:py-8">
-          {/* Mobile: open curriculum sheet */}
-          <div className="mb-4 lg:hidden">
+        <div className="container mx-auto px-4 py-3 sm:px-6 lg:flex lg:gap-8 lg:py-8 phoneLandscape:px-0 phoneLandscape:py-0">
+          {/* Mobile: compact progress chip that opens outline */}
+          <div className="mb-3 lg:hidden phoneLandscape:hidden">
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full justify-between gap-3 rounded-xl px-4"
+              size="sm"
+              className="h-9 w-full justify-between gap-3 rounded-lg px-3"
               onClick={() => setCurriculumOpen(true)}
             >
-              <span className="inline-flex items-center gap-2 font-semibold">
-                <ListVideo className="h-4 w-4 text-primary" />
+              <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                <ListVideo className="h-3.5 w-3.5 text-primary" />
                 Course content
               </span>
               <span className="text-xs font-semibold text-primary">
@@ -504,9 +602,9 @@ const CourseLearn = () => {
           <div className="hidden lg:block">
             <ChapterSidebar
               chapters={chaptersWithLessons}
-              activeLessonId={activeLessonId}
+              activeLessonId={lessonId || null}
               completedLessonIds={completedLessonIds}
-              onSelect={setActiveLessonId}
+              onSelect={selectLesson}
             />
           </div>
 
@@ -517,14 +615,27 @@ const CourseLearn = () => {
               description={activeLesson.description}
               videoUrl={activeLesson.video_url}
               completed={completedLessonIds.has(activeLesson.id)}
+              hasPrev={hasPrev}
               hasNext={hasNext}
               completing={completing}
-              onCompleteAndNext={() => void completeAndNext()}
+              position={{
+                index: activeIndex + 1,
+                total: orderedLessons.length,
+                chapterLabel,
+                nextTitle: nextLessonTitle,
+              }}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToggleComplete={() => void toggleComplete()}
+              onOpenOutline={() => setCurriculumOpen(true)}
             />
           )}
 
           <Sheet open={curriculumOpen} onOpenChange={setCurriculumOpen}>
-            <SheetContent side="bottom" className="flex h-[85vh] flex-col gap-0 p-0 sm:max-w-none">
+            <SheetContent
+              side="bottom"
+              className="flex h-[85dvh] flex-col gap-0 p-0 pb-[env(safe-area-inset-bottom)] sm:max-w-none"
+            >
               <SheetHeader className="border-b border-border px-4 py-3 text-start">
                 <SheetTitle>Course content</SheetTitle>
               </SheetHeader>
@@ -532,10 +643,10 @@ const CourseLearn = () => {
                 <ChapterSidebar
                   fillHeight
                   chapters={chaptersWithLessons}
-                  activeLessonId={activeLessonId}
+                  activeLessonId={lessonId || null}
                   completedLessonIds={completedLessonIds}
                   onSelect={(id) => {
-                    setActiveLessonId(id);
+                    selectLesson(id);
                     setCurriculumOpen(false);
                   }}
                 />

@@ -1,7 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
-export type SiteContentKey = "home" | "brand" | "catalog" | "projects" | "cv" | "gallery";
+export type SiteContentKey =
+  | "home"
+  | "brand"
+  | "catalog"
+  | "projects"
+  | "cv"
+  | "gallery"
+  | "course_reviews";
 
 export async function getSiteContent<T>(key: SiteContentKey): Promise<T | null> {
   const { data, error } = await supabase.from("site_content").select("value").eq("key", key).maybeSingle();

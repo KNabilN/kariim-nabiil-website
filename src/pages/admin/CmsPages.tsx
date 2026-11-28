@@ -1,5 +1,6 @@
 import BrandCmsEditor from "@/components/admin/cms/BrandCmsEditor";
 import CatalogCmsEditor from "@/components/admin/cms/CatalogCmsEditor";
+import CourseReviewsCmsEditor from "@/components/admin/cms/CourseReviewsCmsEditor";
 import CvCmsEditor from "@/components/admin/cms/CvCmsEditor";
 import GalleryCmsEditor from "@/components/admin/cms/GalleryCmsEditor";
 import HomeCmsEditor from "@/components/admin/cms/HomeCmsEditor";
@@ -27,4 +28,8 @@ export function AdminGalleryCmsPage() {
 
 export function AdminBrandCmsPage() {
   return <BrandCmsEditor />;
+}
+
+export function AdminCourseReviewsCmsPage() {
+  return <CourseReviewsCmsEditor />;
 }

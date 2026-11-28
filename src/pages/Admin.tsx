@@ -7,6 +7,7 @@ import FeedbackPage from "@/pages/admin/FeedbackPage";
 import {
   AdminBrandCmsPage,
   AdminCatalogCmsPage,
+  AdminCourseReviewsCmsPage,
   AdminCvCmsPage,
   AdminGalleryCmsPage,
   AdminHomeCmsPage,
@@ -32,6 +33,7 @@ export default function Admin() {
             <Route path="projects" element={<AdminProjectsCmsPage />} />
             <Route path="cv" element={<AdminCvCmsPage />} />
             <Route path="gallery" element={<AdminGalleryCmsPage />} />
+            <Route path="course-reviews" element={<AdminCourseReviewsCmsPage />} />
             <Route path="brand" element={<AdminBrandCmsPage />} />
             <Route path="leads" element={<LeadsPage />} />
             <Route path="feedback" element={<FeedbackPage />} />

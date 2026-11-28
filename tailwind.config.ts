@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        phoneLandscape: { raw: "(orientation: landscape) and (max-height: 500px)" },
+      },
       fontFamily: {
         sans: ['"Inter"', "system-ui", "sans-serif"],
         arabic: ['"Cairo"', "system-ui", "sans-serif"],

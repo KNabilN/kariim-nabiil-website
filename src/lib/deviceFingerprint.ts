@@ -1,3 +1,6 @@
+/** Max devices a student can register for course access. */
+export const MAX_STUDENT_DEVICES = 5;
+
 export function getDeviceFingerprint(): string {
   const stored = localStorage.getItem('device_id');
   if (stored) return stored;

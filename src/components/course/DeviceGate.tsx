@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceFingerprint, getDeviceName } from "@/lib/deviceFingerprint";
+import { getDeviceFingerprint, getDeviceName, MAX_STUDENT_DEVICES } from "@/lib/deviceFingerprint";
 import {
   readStudentSession,
   writeStudentSession,
   type StudentSession,
 } from "@/lib/studentSession";
+import StudentDevicesPanel from "@/components/course/StudentDevicesPanel";
+import { toast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert, Mail, ArrowLeft } from "lucide-react";
 
 interface DeviceGateProps {
@@ -21,6 +23,7 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(true);
   const [error, setError] = useState("");
+  const [blockedStudentId, setBlockedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -62,6 +65,7 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setBlockedStudentId(null);
 
     try {
       const { data: student, error: fetchErr } = await supabase
@@ -91,8 +95,11 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
       const existingDevice = devices?.find((d) => d.device_fingerprint === fingerprint);
 
       if (!existingDevice) {
-        if (devices && devices.length >= 3) {
-          setError("You've reached the maximum of 3 devices. Please contact support to reset your devices.");
+        if (devices && devices.length >= MAX_STUDENT_DEVICES) {
+          setBlockedStudentId(student.id);
+          setError(
+            `You've reached the maximum of ${MAX_STUDENT_DEVICES} devices. Remove a device below to continue.`,
+          );
           return;
         }
         await supabase.from("student_devices").insert({
@@ -130,7 +137,7 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-6 py-16">
       <Link
         to="/"
         className="absolute left-6 top-6 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -154,7 +161,11 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
               id="student-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setBlockedStudentId(null);
+                setError("");
+              }}
               required
               placeholder="your@email.com"
               className="mt-1"
@@ -173,6 +184,29 @@ const DeviceGate = ({ onAccess }: DeviceGateProps) => {
             Access Course
           </Button>
         </form>
+
+        {blockedStudentId && (
+          <div className="space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-semibold">Your devices</p>
+            <StudentDevicesPanel
+              studentId={blockedStudentId}
+              compact
+              onChanged={({ remaining }) => {
+                if (remaining < MAX_STUDENT_DEVICES) {
+                  setError("");
+                  setBlockedStudentId(null);
+                  toast({
+                    title: "Device slot freed",
+                    description: "Tap Access Course to continue on this device.",
+                  });
+                }
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              After removing a device, tap Access Course again.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
